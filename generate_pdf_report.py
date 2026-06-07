@@ -438,69 +438,104 @@ def build_pdf(filename="Bao_cao_Mini_Transformer.pdf"):
     story.append(PageBreak()) # KẾT THÚC TRANG 5
 
     # ==========================================
-    # TRANG 6: 1.3 MULTI-HEAD ATTENTION & HÌNH 1
+    # TRANG 6: 1.3 MULTI-HEAD ATTENTION & HÌNH 1 (SIDE-BY-SIDE)
     # ==========================================
     story.append(Paragraph("1.3 Cơ chế Multi-Head Attention & Sơ đồ kiến trúc tổng quát", h2_style))
     story.append(Spacer(1, 10))
-    story.append(Paragraph(
+    
+    text_p1 = Paragraph(
         "Thay vì áp dụng một bộ Attention duy nhất trên toàn bộ chiều đặc trưng, Multi-Head Attention phân rã chiều đặc trưng "
         "thành nhiều không gian con khác nhau. Mỗi không gian con này (gọi là một Head) sẽ học cách chú ý đến các khía cạnh cú pháp "
         "khác nhau. Ví dụ: Head 1 tập trung vào mối quan hệ chủ ngữ - động từ, Head 2 tập trung vào các trạng từ chỉ thời gian, "
         "Head 3 tập trung vào mối liên hệ của đại từ thay thế.",
         body_style
-    ))
-    story.append(Paragraph(
+    )
+    text_p2 = Paragraph(
         "Bản vẽ tổng quát dòng chảy dữ liệu của toàn bộ hệ thống Mini-Transformer được trình bày dưới đây, minh họa rõ ràng luồng "
         "truyền thông tin từ câu nguồn sang câu đích qua cơ chế Cross-Attention:",
         body_style
-    ))
+    )
+    left_container = [text_p1, Spacer(1, 8), text_p2]
     
-    # Chèn ảnh hình 1
-    story.append(Spacer(1, 10))
     if os.path.exists("overview.png"):
-        curves_img = Image("overview.png", width=380, height=175)
-        story.append(curves_img)
-        story.append(Paragraph("<font color='#7F8C8D'><i>Hình 1: Dòng chảy dữ liệu tổng quát giữa Encoder Stack và Decoder Stack trong kiến trúc Mini-Transformer.</i></font>", ParagraphStyle('Cap1_30', parent=styles['Normal'], fontSize=8, alignment=1, spaceBefore=3)))
+        overview_img = Image("overview.png", width=250, height=115)
+        caption_p = Paragraph("<font color='#7F8C8D'><i>Hình 1: Dòng chảy dữ liệu tổng quát giữa Encoder Stack và Decoder Stack.</i></font>", ParagraphStyle('Cap1_30', parent=styles['Normal'], fontSize=7.5, alignment=1, spaceBefore=3))
+        right_container = [overview_img, caption_p]
+        
+        # Table side-by-side
+        side_table = Table([[left_container, right_container]], colWidths=[240, 260])
+        side_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ('RIGHTPADDING', (0,0), (-1,-1), 0),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+            ('TOPPADDING', (0,0), (-1,-1), 0),
+        ]))
+        story.append(side_table)
+    else:
+        story.append(left_container)
     story.append(PageBreak()) # KẾT THÚC TRANG 6
 
     # ==========================================
-    # TRANG 7: CHƯƠNG 2 - 2.1 POSITIONAL ENCODING LÝ THUYẾT
+    # TRANG 7: CHƯƠNG 2 - 2.1 POSITIONAL ENCODING LÝ THUYẾT (SIDE-BY-SIDE)
     # ==========================================
     story.append(Paragraph("Chương 2: Phân tích Chi tiết Thuật toán & Giải thích Mã nguồn", h1_style))
     story.append(Spacer(1, 5))
     story.append(Paragraph("2.1 Mã hóa vị trí (Positional Encoding) - Cơ sở lý thuyết", h2_style))
-    story.append(Paragraph(
+    
+    text_p1 = Paragraph(
         "Để truyền đạt thông tin vị trí vào mô hình mà không cần các kết nối tuần tự, bài báo đề xuất cộng trực tiếp một "
         "vector mã hóa vị trí (PE) có cùng kích thước với vector Word Embedding. Vector PE được tính bằng cách sử dụng các hàm "
         "sóng hình sin và hình cosin tuần hoàn với các tần số khác nhau. Công thức toán học cụ thể như sau:",
         body_style
-    ))
+    )
     
     pe_math = (
         "<i>PE</i><sub>(<i>pos</i>, 2<i>i</i>)</sub> = sin( <i>pos</i> / 10000<sup>2<i>i</i>/<i>d</i><sub><i>model</i></sub></sup> )<br/>"
         "<i>PE</i><sub>(<i>pos</i>, 2<i>i</i>+1)</sub> = cos( <i>pos</i> / 10000<sup>2<i>i</i>/<i>d</i><sub><i>model</i></sub></sup> )"
     )
-    story.append(Paragraph(pe_math, formula_style))
+    math_p = Paragraph(pe_math, formula_style)
     
-    story.append(Paragraph(
+    text_p2 = Paragraph(
         "Trong đó <i>pos</i> đại diện cho vị trí vật lý của từ trong câu (0, 1, 2, ...), và <i>i</i> đại diện cho chỉ số chiều "
         "trong không gian đặc trưng (0, 1, ..., <i>d</i><sub><i>model</i></sub>/2 - 1). Việc sử dụng hàm tuần hoàn giúp mô hình dễ dàng học cách chú ý "
         "đến vị trí tương đối giữa các từ vì đối với bất kỳ khoảng cách dịch chuyển <i>k</i> nào, <i>PE</i><sub><i>pos</i>+<i>k</i></sub> có thể được biểu diễn như "
         "một phép biến đổi tuyến tính của <i>PE</i><sub><i>pos</i></sub>.",
         body_style
-    ))
+    )
+    
+    left_container = [text_p1, Spacer(1, 4), math_p, Spacer(1, 4), text_p2]
+    
+    if os.path.exists("pe_flow.png"):
+        pe_flow_img = Image("pe_flow.png", width=220, height=100)
+        caption_flow = Paragraph("<font color='#7F8C8D'><i>Hình 2: Luồng cộng Positional Encoding vào Embedding.</i></font>", ParagraphStyle('CapFlow', parent=styles['Normal'], fontSize=7.5, alignment=1, spaceBefore=3))
+        right_container = [Spacer(1, 20), pe_flow_img, caption_flow]
+        
+        side_table = Table([[left_container, right_container]], colWidths=[265, 235])
+        side_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ('RIGHTPADDING', (0,0), (-1,-1), 0),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+            ('TOPPADDING', (0,0), (-1,-1), 0),
+        ]))
+        story.append(side_table)
+    else:
+        story.append(left_container)
+        
     story.append(PageBreak()) # KẾT THÚC TRANG 7
 
     # ==========================================
-    # TRANG 8: CÀI ĐẶT POSITIONAL ENCODING
+    # TRANG 8: CÀI ĐẶT POSITIONAL ENCODING & HEATMAP (SIDE-BY-SIDE)
     # ==========================================
     story.append(Paragraph("Cài đặt Lớp PositionalEncoding trong PyTorch", h2_style))
     story.append(Spacer(1, 10))
-    story.append(Paragraph(
+    
+    intro_p = Paragraph(
         "Dưới đây là khối mã nguồn của lớp `PositionalEncoding`. Mã nguồn sử dụng không gian log (`log-space`) để tính toán "
         "mẫu số nhằm tránh tràn số và tăng tốc độ xử lý ma trận trên GPU:",
         body_style
-    ))
+    )
     
     pe_raw_code = (
         "class PositionalEncoding(nn.Module):\n"
@@ -524,53 +559,65 @@ def build_pdf(filename="Bao_cao_Mini_Transformer.pdf"):
         "        x = x + self.pe[:, :x.size(1)]\n"
         "        return x"
     )
-    story.append(make_code_block(pe_raw_code))
+    code_flowable = make_code_block(pe_raw_code)
+    left_container = [intro_p, Spacer(1, 6), code_flowable]
+    
+    if os.path.exists("pe_heatmap.png"):
+        pe_heatmap_img = Image("pe_heatmap.png", width=210, height=127)
+        caption_heatmap = Paragraph("<font color='#7F8C8D'><i>Hình 3: Bản đồ nhiệt trực quan hóa ma trận PE với tần số thay đổi dần theo số chiều.</i></font>", ParagraphStyle('CapHeatmap', parent=styles['Normal'], fontSize=7.5, alignment=1, spaceBefore=3))
+        right_container = [Spacer(1, 30), pe_heatmap_img, caption_heatmap]
+        
+        side_table = Table([[left_container, right_container]], colWidths=[275, 225])
+        side_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ('RIGHTPADDING', (0,0), (-1,-1), 0),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+            ('TOPPADDING', (0,0), (-1,-1), 0),
+        ]))
+        story.append(side_table)
+    else:
+        story.append(left_container)
+        
     story.append(PageBreak()) # KẾT THÚC TRANG 8
 
     # ==========================================
-    # TRANG 9: HÌNH 2 & HÌNH 3 POSITIONAL ENCODING
-    # ==========================================
-    story.append(Paragraph("Trực quan hóa cơ chế mã hóa vị trí (Positional Encoding)", h2_style))
-    story.append(Spacer(1, 10))
-    story.append(Paragraph(
-        "Để hiểu rõ quy trình này, chúng tôi biểu diễn hai sơ đồ trực quan dưới đây. Sơ đồ thứ nhất (Hình 2) mô tả "
-        "luồng cộng vector PE trực tiếp vào Word Embedding. Sơ đồ thứ hai (Hình 3) trực quan hóa ma trận PE dưới dạng bản đồ nhiệt "
-        "để chứng minh sự thay đổi tần số tuần hoàn giữa các chiều đặc trưng khác nhau:",
-        body_style
-    ))
-    
-    # Chèn ảnh pe_flow và pe_heatmap
-    flow_heatmap_data = []
-    if os.path.exists("pe_flow.png") and os.path.exists("pe_heatmap.png"):
-        f_img = Image("pe_flow.png", width=220, height=100)
-        h_img = Image("pe_heatmap.png", width=220, height=133)
-        flow_heatmap_data = [[f_img, h_img]]
-        fh_table = Table(flow_heatmap_data, colWidths=[240, 240])
-        fh_table.setStyle(TableStyle([
-            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ]))
-        story.append(fh_table)
-        story.append(Paragraph("<font color='#7F8C8D'><i>Hình 2 & 3: Luồng cộng Positional Encoding vào Embedding (Trái) và Bản đồ nhiệt trực quan hóa ma trận PE với tần số thay đổi dần theo số chiều (Phải).</i></font>", ParagraphStyle('Cap23_30', parent=styles['Normal'], fontSize=8, alignment=1, spaceBefore=4)))
-    story.append(PageBreak()) # KẾT THÚC TRANG 9
-
-    # ==========================================
-    # TRANG 10: 2.2 MULTI-HEAD ATTENTION LÝ THUYẾT
+    # TRANG 10: 2.2 MULTI-HEAD ATTENTION LÝ THUYẾT & FLOW (SIDE-BY-SIDE)
     # ==========================================
     story.append(Paragraph("2.2 Lớp tự chú ý đa đầu (Multi-Head Attention) - Lý thuyết", h2_style))
     story.append(Spacer(1, 10))
-    story.append(Paragraph(
+    
+    text_p1 = Paragraph(
         "Cơ chế Multi-Head Attention thực hiện chiếu các vector đầu vào thông qua các ma trận trọng số khả học <i>W</i><sub><i>q</i></sub>, <i>W</i><sub><i>k</i></sub>, <i>W</i><sub><i>v</i></sub> "
         "để tạo thành ba ma trận <i>Q</i>, <i>K</i>, <i>V</i>. Sau đó, các ma trận này được phân rã thành <i>H</i> đầu chú ý (heads) để tính toán "
         "Scaled Dot-Product Attention độc lập. Điều này giúp mô hình đồng thời truy vấn ngữ cảnh tại các không gian con khác nhau. "
         "Sau khi tính toán xong, các đầu chú ý được ghép nối (concatenated) lại và đưa qua lớp chiếu tuyến tính <i>W</i><sub><i>o</i></sub> để khôi phục chiều đặc trưng.",
         body_style
-    ))
-    story.append(Paragraph(
+    )
+    text_p2 = Paragraph(
         "Việc tính toán Attention song song trên nhiều GPU yêu cầu ta phải theo dõi chặt chẽ kích thước (shape) của các tensor "
         "qua từng bước biến đổi ma trận để đảm bảo không xảy ra lỗi thiết kế lớp tuyến tính.",
         body_style
-    ))
+    )
+    left_container = [text_p1, Spacer(1, 6), text_p2]
+    
+    if os.path.exists("attention_flow.png"):
+        mha_flow_img = Image("attention_flow.png", width=230, height=160)
+        caption_flow = Paragraph("<font color='#7F8C8D'><i>Hình 4: Quy trình tính toán Multi-Head Attention song song trên từng head con.</i></font>", ParagraphStyle('CapMhaFlow', parent=styles['Normal'], fontSize=7.5, alignment=1, spaceBefore=3))
+        right_container = [mha_flow_img, caption_flow]
+        
+        side_table = Table([[left_container, right_container]], colWidths=[260, 240])
+        side_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ('RIGHTPADDING', (0,0), (-1,-1), 0),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+            ('TOPPADDING', (0,0), (-1,-1), 0),
+        ]))
+        story.append(side_table)
+    else:
+        story.append(left_container)
+        
     story.append(Spacer(1, 15))
     story.append(Paragraph("<b>Bảng theo dõi sự biến đổi kích thước tensor trong Multi-Head Attention:</b>", h2_style))
     
@@ -640,26 +687,6 @@ def build_pdf(filename="Bao_cao_Mini_Transformer.pdf"):
     story.append(PageBreak()) # KẾT THÚC TRANG 11
 
     # ==========================================
-    # TRANG 12: HÌNH 4 MULTI-HEAD ATTENTION FLOW
-    # ==========================================
-    story.append(Paragraph("Trực quan hóa quy trình tính toán Attention đa đầu", h2_style))
-    story.append(Spacer(1, 10))
-    story.append(Paragraph(
-        "Sơ đồ dưới đây (Hình 4) mô tả chi tiết dòng chảy của các tensor thông qua các lớp chiếu tuyến tính Query, Key, Value, "
-        "quy trình tách thành nhiều đầu chú ý (Heads) song song, tính toán tích vô hướng được chia tỷ lệ nghịch với căn bậc hai của <i>d</i><sub><i>k</i></sub>, "
-        "và cuối cùng ghép các đầu lại để đưa qua lớp chiếu tuyến tính <i>W</i><sub><i>o</i></sub> đầu ra:",
-        body_style
-    ))
-    
-    # Chèn ảnh attention_flow
-    story.append(Spacer(1, 20))
-    if os.path.exists("attention_flow.png"):
-        mha_flow_img = Image("attention_flow.png", width=280, height=194)
-        story.append(mha_flow_img)
-        story.append(Paragraph("<font color='#7F8C8D'><i>Hình 4: Quy trình tính toán Multi-Head Attention song song trên từng head con.</i></font>", ParagraphStyle('Cap4_30', parent=styles['Normal'], fontSize=8, alignment=1, spaceBefore=3)))
-    story.append(PageBreak()) # KẾT THÚC TRANG 12
-
-    # ==========================================
     # TRANG 13: 2.3 POSITION-WISE FEED-FORWARD LÝ THUYẾT & CODE
     # ==========================================
     story.append(Paragraph("2.3 Mạng truyền thẳng từng vị trí (Position-Wise Feed-Forward)", h2_style))
@@ -697,18 +724,38 @@ def build_pdf(filename="Bao_cao_Mini_Transformer.pdf"):
     story.append(PageBreak()) # KẾT THÚC TRANG 13
 
     # ==========================================
-    # TRANG 14: 2.4 ENCODER LAYER
+    # TRANG 14: 2.4 ENCODER LAYER & DIAGRAM (SIDE-BY-SIDE)
     # ==========================================
     story.append(Paragraph("2.4 Khối tầng mã hóa (EncoderLayer) - Thiết kế Pre-LN", h2_style))
     story.append(Spacer(1, 10))
-    story.append(Paragraph(
+    
+    theory_p = Paragraph(
         "Một khối Encoder Layer gồm hai khối con (Sub-layers): Multi-Head Self-Attention và Position-wise Feed-Forward Network. "
         "Khác với thiết kế Post-LN nguyên bản của bài báo năm 2017 áp dụng LayerNorm sau khi cộng kết nối tắt (Residual Connection), "
         "chúng tôi áp dụng thiết kế <b>Pre-LN (Layer Normalization đặt trước)</b>. Theo đó, dữ liệu được chuẩn hóa trước khi đi vào "
         "khối chú ý hoặc mạng FFN. Thiết kế này tạo ra một đường truyền đạo hàm không bị cản trở qua kết nối tắt, giúp mô hình "
         "huấn luyện cực kỳ ổn định ở các lớp sâu.",
         body_style
-    ))
+    )
+    
+    if os.path.exists("encoder_layer.png"):
+        enc_img = Image("encoder_layer.png", width=140, height=200)
+        caption_enc = Paragraph("<font color='#7F8C8D'><i>Hình 5: Thiết kế Pre-LN trong một tầng Encoder Layer.</i></font>", ParagraphStyle('CapEnc', parent=styles['Normal'], fontSize=7.5, alignment=1, spaceBefore=3))
+        right_container = [enc_img, caption_enc]
+        
+        side_table = Table([[theory_p, right_container]], colWidths=[340, 160])
+        side_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ('RIGHTPADDING', (0,0), (-1,-1), 0),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+            ('TOPPADDING', (0,0), (-1,-1), 0),
+        ]))
+        story.append(side_table)
+    else:
+        story.append(theory_p)
+        
+    story.append(Spacer(1, 10))
     story.append(Paragraph("<b>Mã nguồn cài đặt EncoderLayer:</b>", h2_style))
     
     encoder_layer_raw_code = (
@@ -737,38 +784,38 @@ def build_pdf(filename="Bao_cao_Mini_Transformer.pdf"):
     story.append(PageBreak()) # KẾT THÚC TRANG 14
 
     # ==========================================
-    # TRANG 15: HÌNH 5 ENCODER LAYER
-    # ==========================================
-    story.append(Paragraph("Trực quan hóa cấu trúc khối Encoder Layer", h2_style))
-    story.append(Spacer(1, 10))
-    story.append(Paragraph(
-        "Sơ đồ cấu trúc dưới đây (Hình 5) biểu diễn chi tiết dòng chảy của tín hiệu đi qua khối Encoder Layer. "
-        "Đồ thị chỉ ra rõ ràng vị trí của lớp chuẩn hóa LayerNorm được đặt trước các khối tính toán Self-Attention và "
-        "Feed-Forward, cùng với các kết nối tắt (Residual Connections) màu đỏ đi vòng qua để thực hiện phép cộng tín hiệu trực tiếp:",
-        body_style
-    ))
-    
-    # Chèn ảnh encoder_layer
-    story.append(Spacer(1, 15))
-    if os.path.exists("encoder_layer.png"):
-        enc_img = Image("encoder_layer.png", width=140, height=200)
-        story.append(enc_img)
-        story.append(Paragraph("<font color='#7F8C8D'><i>Hình 5: Sơ đồ thiết kế Pre-LN và Residual Connection trong một tầng Encoder Layer.</i></font>", ParagraphStyle('Cap5_30', parent=styles['Normal'], fontSize=8, alignment=1, spaceBefore=3)))
-    story.append(PageBreak()) # KẾT THÚC TRANG 15
-
-    # ==========================================
-    # TRANG 16: 2.5 DECODER LAYER & CODE
+    # TRANG 16: 2.5 DECODER LAYER & DIAGRAM (SIDE-BY-SIDE)
     # ==========================================
     story.append(Paragraph("2.5 Khối tầng giải mã (DecoderLayer) - Chú ý chéo ngữ cảnh", h2_style))
     story.append(Spacer(1, 10))
-    story.append(Paragraph(
+    
+    theory_p = Paragraph(
         "Khối Decoder Layer có cấu trúc phức tạp hơn gồm ba khối con (Sub-layers): Masked Self-Attention (chú ý nhân quả giữa các từ đã dịch), "
         "Encoder-Decoder Cross-Attention (chú ý chéo liên kết thông tin nguồn và đích), và Position-wise Feed-Forward. "
         "Tại lớp Cross-Attention, ma trận Query (<i>Q</i>) được chiếu từ dữ liệu Decoder (câu dịch tiếng Anh tạm thời), trong khi "
         "Key (<i>K</i>) và Value (<i>V</i>) được lấy trực tiếp từ đầu ra của bộ mã hóa Encoder (câu gốc tiếng Việt). Điều này cho phép "
         "mô hình thực hiện tra cứu các từ tiếng Việt tương ứng khi dịch ra một từ tiếng Anh mới.",
         body_style
-    ))
+    )
+    
+    if os.path.exists("decoder_layer.png"):
+        dec_img = Image("decoder_layer.png", width=140, height=215)
+        caption_dec = Paragraph("<font color='#7F8C8D'><i>Hình 6: Thiết kế Pre-LN trong một tầng Decoder Layer.</i></font>", ParagraphStyle('CapDec', parent=styles['Normal'], fontSize=7.5, alignment=1, spaceBefore=3))
+        right_container = [dec_img, caption_dec]
+        
+        side_table = Table([[theory_p, right_container]], colWidths=[340, 160])
+        side_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ('RIGHTPADDING', (0,0), (-1,-1), 0),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+            ('TOPPADDING', (0,0), (-1,-1), 0),
+        ]))
+        story.append(side_table)
+    else:
+        story.append(theory_p)
+        
+    story.append(Spacer(1, 10))
     story.append(Paragraph("<b>Mã nguồn cài đặt DecoderLayer:</b>", h2_style))
     
     decoder_layer_raw_code = (
@@ -800,25 +847,7 @@ def build_pdf(filename="Bao_cao_Mini_Transformer.pdf"):
     story.append(make_code_block(decoder_layer_raw_code))
     story.append(PageBreak()) # KẾT THÚC TRANG 16
 
-    # ==========================================
-    # TRANG 17: HÌNH 6 DECODER LAYER
-    # ==========================================
-    story.append(Paragraph("Trực quan hóa cấu trúc khối Decoder Layer", h2_style))
-    story.append(Spacer(1, 10))
-    story.append(Paragraph(
-        "Sơ đồ cấu trúc dưới đây (Hình 6) biểu diễn chi tiết dòng chảy của tín hiệu đi qua khối Decoder Layer. "
-        "Bạn có thể thấy rõ ràng 3 lớp chuẩn hóa LayerNorm được đặt trước các khối tính toán tương ứng, phép cộng kết nối tắt "
-        "giúp bảo toàn thông tin lỗi và đặc biệt là cổng kết nối chéo lấy đầu vào Key và Value (K/V) từ Encoder:",
-        body_style
-    ))
-    
-    # Chèn ảnh decoder_layer
-    story.append(Spacer(1, 15))
-    if os.path.exists("decoder_layer.png"):
-        dec_img = Image("decoder_layer.png", width=140, height=215)
-        story.append(dec_img)
-        story.append(Paragraph("<font color='#7F8C8D'><i>Hình 6: Thiết kế 3 khối con kết hợp Pre-LN trong một tầng Decoder Layer giải mã.</i></font>", ParagraphStyle('Cap6_30', parent=styles['Normal'], fontSize=8, alignment=1, spaceBefore=3)))
-    story.append(PageBreak()) # KẾT THÚC TRANG 17
+    # (Trang 17 cũ đã được tích hợp vào Trang 16)
 
     # ==========================================
     # TRANG 18: 2.6 TRANSFORMER FULL & CODE
@@ -1048,23 +1077,34 @@ def build_pdf(filename="Bao_cao_Mini_Transformer.pdf"):
     story.append(PageBreak()) # KẾT THÚC TRANG 23
 
     # ==========================================
-    # TRANG 24: HÌNH 7 DYNAMIC PADDING
+    # TRANG 24: HÌNH 7 DYNAMIC PADDING (SIDE-BY-SIDE)
     # ==========================================
     story.append(Paragraph("Trực quan hóa cơ chế đệm động (Dynamic Padding)", h2_style))
     story.append(Spacer(1, 10))
-    story.append(Paragraph(
+    
+    theory_p = Paragraph(
         "Sơ đồ dưới đây (Hình 7) so sánh trực quan giữa hai cơ chế đệm dữ liệu: Đệm cố định (Static Padding) gán cứng chiều dài "
         "8 token cho toàn bộ các batch, làm phát sinh rất nhiều ô đệm trống `<pad>` màu xám. Trong khi đó, Đệm động (Dynamic Padding) "
         "tự động đệm theo chiều dài tối đa của batch hiện tại (chỉ là 4 token), giúp giải phóng hơn một nửa số lượng phép tính vô nghĩa:",
         body_style
-    ))
+    )
     
-    # Chèn ảnh dynamic_padding
-    story.append(Spacer(1, 20))
     if os.path.exists("dynamic_padding.png"):
-        pad_img = Image("dynamic_padding.png", width=380, height=173)
-        story.append(pad_img)
-        story.append(Paragraph("<font color='#7F8C8D'><i>Hình 7: Sự khác biệt lớn giữa Static Padding và Dynamic Padding trong thực tiễn tối ưu hóa VRAM.</i></font>", ParagraphStyle('Cap7_30', parent=styles['Normal'], fontSize=8, alignment=1, spaceBefore=3)))
+        pad_img = Image("dynamic_padding.png", width=230, height=105)
+        caption_pad = Paragraph("<font color='#7F8C8D'><i>Hình 7: Sự khác biệt giữa Static Padding và Dynamic Padding.</i></font>", ParagraphStyle('Cap7_30', parent=styles['Normal'], fontSize=7.5, alignment=1, spaceBefore=3))
+        right_container = [pad_img, caption_pad]
+        
+        side_table = Table([[theory_p, right_container]], colWidths=[260, 240])
+        side_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ('RIGHTPADDING', (0,0), (-1,-1), 0),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+            ('TOPPADDING', (0,0), (-1,-1), 0),
+        ]))
+        story.append(side_table)
+    else:
+        story.append(theory_p)
     story.append(PageBreak()) # KẾT THÚC TRANG 24
 
     # ==========================================
@@ -1097,7 +1137,7 @@ def build_pdf(filename="Bao_cao_Mini_Transformer.pdf"):
     story.append(PageBreak()) # KẾT THÚC TRANG 25
 
     # ==========================================
-    # TRANG 26: CHƯƠNG 5 - KẾT QUẢ THỰC NGHIỆM
+    # TRANG 26: CHƯƠNG 5 - KẾT QUẢ THỰC NGHIỆM & ĐỒ THỊ (COMBINED)
     # ==========================================
     story.append(Paragraph("Chương 5: Kết quả thực nghiệm & Sự hội tụ", h1_style))
     story.append(Spacer(1, 10))
@@ -1132,33 +1172,41 @@ def build_pdf(filename="Bao_cao_Mini_Transformer.pdf"):
         ('BACKGROUND', (0,7), (-1,7), colors.HexColor("#EBF8FF")), # Highlight best BLEU
     ]))
     story.append(results_table_f)
-    story.append(PageBreak()) # KẾT THÚC TRANG 26
-
-    # ==========================================
-    # TRANG 27: ĐỒ THỊ KẾT QUẢ HUẤN LUYỆN
-    # ==========================================
+    
+    story.append(Spacer(1, 15))
     story.append(Paragraph("Đồ thị các đường cong hội tụ thực nghiệm", h2_style))
     story.append(Spacer(1, 10))
-    story.append(Paragraph(
+    
+    theory_curves = Paragraph(
         "Đồ thị dưới đây (Hình 8) thể hiện quá trình hội tụ qua 30 Epochs huấn luyện thực tế. Trục hoành đại diện cho "
         "số Epoch chạy và trục tung đại diện cho giá trị của chỉ số tương ứng. Biểu đồ chỉ ra xu hướng tối ưu hóa mượt mà "
         "của Loss, độ giảm Perplexity từ cực đại xuống dưới 10, và sự đạt đỉnh của BLEU score tại epoch thứ 13 trước khi đi ngang:",
         body_style
-    ))
+    )
     
-    # Chèn ảnh curves mới
-    story.append(Spacer(1, 15))
     if os.path.exists("curves.png"):
         try:
-            curves_img = Image("curves.png", width=480, height=131)
-            story.append(curves_img)
-            story.append(Paragraph("<font color='#7F8C8D'><i>Hình 8: Biểu đồ đường cong Train vs Val Loss (Trái), Perplexity PPL (Giữa) và Val BLEU Score (Phải).</i></font>", ParagraphStyle('Cap8_30', parent=styles['Normal'], fontSize=8, alignment=1, spaceBefore=3)))
+            curves_img = Image("curves.png", width=270, height=74)
+            caption_curves = Paragraph("<font color='#7F8C8D'><i>Hình 8: Biểu đồ đường cong Loss, PPL và BLEU.</i></font>", ParagraphStyle('Cap8_30', parent=styles['Normal'], fontSize=7.5, alignment=1, spaceBefore=3))
+            right_container = [curves_img, caption_curves]
+            
+            side_table = Table([[theory_curves, right_container]], colWidths=[220, 280])
+            side_table.setStyle(TableStyle([
+                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                ('LEFTPADDING', (0,0), (-1,-1), 0),
+                ('RIGHTPADDING', (0,0), (-1,-1), 0),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+                ('TOPPADDING', (0,0), (-1,-1), 0),
+            ]))
+            story.append(side_table)
         except Exception as e:
             print(f"Error loading curves.png: {e}")
-    story.append(PageBreak()) # KẾT THÚC TRANG 27
+            story.append(theory_curves)
+    else:
+        story.append(theory_curves)
+    story.append(PageBreak()) # KẾT THÚC TRANG 26
 
-    # ==========================================
-    # TRANG 28: CHƯƠNG 6 - ĐÁNH GIÁ BẢN DỊCH
+    # TRANG 28: CHƯƠNG 6 - ĐÁNH GIÁ BẢN DỊCH & ATTENTION MAP (COMBINED)
     # ==========================================
     story.append(Paragraph("Chương 6: Đánh giá chất lượng dịch mẫu & Bản đồ Attention", h1_style))
     story.append(Spacer(1, 10))
@@ -1194,32 +1242,39 @@ def build_pdf(filename="Bao_cao_Mini_Transformer.pdf"):
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
     ]))
     story.append(trans_table_f)
-    story.append(PageBreak()) # KẾT THÚC TRANG 28
-
-    # ==========================================
-    # TRANG 29: BẢN ĐỒ CROSS-ATTENTION MAP
-    # ==========================================
+    
+    story.append(Spacer(1, 15))
     story.append(Paragraph("6.2 Trực quan hóa Bản đồ chú ý chéo (Cross-Attention Map)", h2_style))
     story.append(Spacer(1, 10))
-    story.append(Paragraph(
+    
+    theory_attn = Paragraph(
         "Bản đồ chú ý chéo (Hình 9) của tầng Decoder cuối cùng thể hiện xác suất chú ý giữa các từ tiếng Việt nguồn "
         "và các từ tiếng Anh dịch ra. Các ô màu đậm biểu diễn liên kết từ vựng chính xác: từ **\"với\"** tập trung chú ý "
-        "vào **\"with\"** (0.30), từ **\"các bạn\"** hướng mạnh vào **\"you\"** (0.15/0.11), và từ **\"muốn\"** ánh xạ vào **\"would\"** / **\"like\"** (0.31):",
+        "vào **\"with\"** (0.30), từ **\"các bạn\"** hướng mạnh vào **\"you\"** (0.15/0.11), và từ **\"muốn\"** ánh xạ vào **\"would\"** / **\"like\"**:",
         body_style
-    ))
+    )
     
-    # Chèn ảnh Cross-Attention Map mới
-    story.append(Spacer(1, 15))
     if os.path.exists("attention_map.png"):
         try:
-            attn_img = Image("attention_map.png", width=260, height=220)
-            story.append(KeepTogether([
-                attn_img,
-                Paragraph("<font color='#7F8C8D'><i>Hình 9: Bản đồ chú ý chéo (Cross-Attention Map) Việt - Anh của câu dịch mẫu. Trọng số tập trung trên đường chéo phản ánh độ khớp chuẩn xác của ngữ pháp dịch song ngữ.</i></font>", ParagraphStyle('Cap9_30', parent=styles['Normal'], fontSize=8, alignment=1, spaceBefore=3))
+            attn_img = Image("attention_map.png", width=240, height=203)
+            caption_attn = Paragraph("<font color='#7F8C8D'><i>Hình 9: Bản đồ chú ý chéo (Cross-Attention Map) Việt - Anh.</i></font>", ParagraphStyle('Cap9_30', parent=styles['Normal'], fontSize=7.5, alignment=1, spaceBefore=3))
+            right_container = [attn_img, caption_attn]
+            
+            side_table = Table([[theory_attn, right_container]], colWidths=[240, 260])
+            side_table.setStyle(TableStyle([
+                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                ('LEFTPADDING', (0,0), (-1,-1), 0),
+                ('RIGHTPADDING', (0,0), (-1,-1), 0),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+                ('TOPPADDING', (0,0), (-1,-1), 0),
             ]))
+            story.append(side_table)
         except Exception as e:
             print(f"Error loading attention_map.png: {e}")
-    story.append(PageBreak()) # KẾT THÚC TRANG 29
+            story.append(theory_attn)
+    else:
+        story.append(theory_attn)
+    story.append(PageBreak()) # KẾT THÚC TRANG 28
 
     # ==========================================
     # TRANG 30: CHƯƠNG 7 - KẾT LUẬN & ĐỀ XUẤT

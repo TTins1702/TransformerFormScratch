@@ -2,24 +2,15 @@
 
 ## 1. Phân tích Sơ đồ Khối và Mã nguồn thực tế
 
-Khi so sánh sơ đồ luồng dữ liệu tổng quát (hình [overview.png](file:///d:/CN12_2024_2028/NCKH/Code/TransformerFormScratch/overview.png)) với kiến trúc Transformer gốc trong bài báo, xét về mặt nguyên lý cốt lõi, không có sự khác biệt. Tuy nhiên, có hai điểm khác biệt cụ thể về mặt thông số và cách minh họa trong dự án của chúng ta:
-
-1.  **Số lượng tầng (Layers):**
-    *   *Trong sơ đồ minh họa:* Cả `ENCODER STACK` và `DECODER STACK` được vẽ với **3 Layers**. Đây là sơ đồ minh họa được đơn giản hóa nhằm tối ưu giao diện trực quan và tương ứng với phiên bản thử nghiệm rút gọn ban đầu.
-    *   *Trong mã nguồn thực tế:* Ở phần huấn luyện thực tế (trong file [generate_notebook.py](file:///d:/CN12_2024_2028/NCKH/Code/TransformerFormScratch/generate_notebook.py)), chúng ta khởi tạo mô hình với cấu hình đầy đủ **6 Layers**, `d_model=512` và `d_ff=2048` trùng khớp với cấu hình chuẩn (Base) của bài báo gốc.
-2.  **Bài toán áp dụng cụ thể:**
-    *   *Trong sơ đồ minh họa:* Sơ đồ được cụ thể hóa cho bài toán dịch máy **Việt - Anh** với ví dụ đầu vào cụ thể (*"Câu nguồn Tiếng Việt (chúng tôi học sâu)"*, *"Câu dịch tạm Tiếng Anh (<sos> we learn)"*).
-    *   *Trong bài báo gốc:* Sơ đồ được vẽ ở dạng tổng quát (Inputs và Outputs) và thử nghiệm trên các cặp ngôn ngữ Anh - Đức (English-to-German) và Anh - Pháp (English-to-French).
-
 #### Trực quan hóa Sơ đồ Tổng quan Kiến trúc và Các khối Layers:
-![Sơ đồ tổng quan kiến trúc Mini-Transformer Việt - Anh](overview.png)
 
-*Hình 1.1: Sơ đồ luồng xử lý tổng quan của hệ thống dịch Việt - Anh.*
+| Phân tích & So sánh Kiến trúc | Sơ đồ Luồng Tổng quan |
+| :--- | :---: |
+| Khi so sánh sơ đồ luồng dữ liệu tổng quát với kiến trúc Transformer gốc trong bài báo, xét về mặt nguyên lý cốt lõi, không có sự khác biệt. Tuy nhiên, có hai điểm khác biệt cụ thể về thông số và cách minh họa trong dự án:<br/><br/>**1. Số lượng tầng (Layers):**<br/>• *Sơ đồ:* Vẽ **3 Layers** để tối ưu hóa hiển thị.<br/>• *Mã nguồn:* Dùng cấu hình chuẩn **6 Layers**, `d_model=512`, `d_ff=2048` (Base).<br/><br/>**2. Bài toán áp dụng:**<br/>• *Sơ đồ:* Dịch máy **Việt - Anh** với dữ liệu mẫu cụ thể (*"chúng tôi học sâu"* -> *"<sos> we learn"*).<br/>• *Bài báo:* Tổng quát, kiểm thử trên tiếng Anh - Đức/Pháp. | ![Sơ đồ tổng quan kiến trúc Mini-Transformer Việt - Anh](overview.png)<br/>*Hình 1.1: Sơ đồ luồng xử lý tổng quan của hệ thống dịch Việt - Anh.* |
 
-![Sơ đồ khối Encoder Layer](encoder_layer.png)
-![Sơ đồ khối Decoder Layer](decoder_layer.png)
-
-*Hình 1.2: Sơ đồ khối chi tiết bên trong Encoder Layer và Decoder Layer.*
+| Cấu trúc chi tiết Encoder Layer | Cấu trúc chi tiết Decoder Layer |
+| :--- | :--- |
+| **Encoder Layer (Khối mã hóa):**<br/>• Gồm 2 phân lớp con: **Multi-Head Self-Attention** và **Feed-Forward Network (FFN)**.<br/>• Áp dụng cơ chế **Pre-LN**: Layer Normalization đặt trước mỗi phân lớp.<br/>• Kết nối tắt (Residual Connection) cộng trực tiếp đầu vào với đầu ra phân lớp để ổn định gradient ở tầng sâu.<br/><br/>![Sơ đồ khối Encoder Layer](encoder_layer.png)<br/>*Hình 1.2: Thiết kế Pre-LN trong một tầng Encoder Layer.* | **Decoder Layer (Khối giải mã):**<br/>• Gồm 3 phân lớp con: **Masked Self-Attention** (chú ý nhân quả chuỗi đích), **Cross-Attention** (chú ý chéo liên kết nguồn - đích), và **FFN**.<br/>• Tương tự Encoder Layer, áp dụng cơ chế **Pre-LN** trước mỗi phân lớp.<br/>• Cross-Attention lấy ma trận Query ($Q$) từ Decoder và ma trận Key ($K$), Value ($V$) từ đầu ra của Encoder.<br/><br/>![Sơ đồ khối Decoder Layer](decoder_layer.png)<br/>*Hình 1.3: Thiết kế Pre-LN trong một tầng Decoder Layer.* |
 
 
 ---
@@ -200,16 +191,11 @@ $$PE_{(pos=1)} = [0.8415, 0.5403, 0.8018, 0.5976, ..., 0.0001, 1.0000]$$
 ---
 
 ### 4. Ý nghĩa của phép cộng luồng trong sơ đồ:
-Sau khi tính toán xong vector $PE_{(pos)}$ (ví dụ kích thước $1 \times 256$), mô hình thực hiện phép cộng trực tiếp (element-wise addition) vào vector nhúng từ (Word Embedding $x_{word}$ kích thước $1 \times 256$):
 
-$$x_{input\_to\_encoder} = x_{word} \times \sqrt{d_{model}} + PE_{(pos)}$$
+| Cơ chế cộng Luồng Positional Encoding | Sơ đồ luồng cộng |
+| :--- | :---: |
+| Sau khi tính toán xong vector $PE_{(pos)}$ (ví dụ kích thước $1 \times 256$ cho từ *"yêu"* tại $pos=1$), mô hình thực hiện phép cộng trực tiếp (element-wise) vào vector nhúng từ (Word Embedding $x_{word}$):<br/>$$x_{input\_to\_encoder} = x_{word} \times \sqrt{d_{model}} + PE_{(pos)}$$<br/><br/>**Lưu ý quan trọng:**<br/>Ta nhân tỷ lệ $\sqrt{d_{model}}$ vào Word Embedding trước khi cộng để giữ cho thông tin vị trí không lấn át thông tin ngữ nghĩa của từ. Đồng thời, điều này giúp cân bằng phương sai giữa phần biểu diễn ngữ nghĩa và biểu diễn vị trí. | ![Sơ đồ luồng cộng Positional Encoding](pe_flow.png)<br/>*Hình 4.1: Cách kết hợp nhúng từ và nhúng vị trí (Positional Encoding Flow).* |
 
-**Lưu ý:** Nhân tỷ lệ $\sqrt{d_{model}} = \sqrt{256} = 16$ vào Word Embedding trước khi cộng để giữ cho thông tin vị trí không lấn át thông tin ngữ nghĩa của từ.
-
-#### Sơ đồ Luồng cộng mã hóa vị trí (Positional Encoding Flow):
-![Sơ đồ luồng cộng Positional Encoding](pe_flow.png)
-
-*Hình 4.1: Cách kết hợp nhúng từ (Word Embedding) và nhúng vị trí (Positional Encoding).*
 
 ### 4.2. Tại sao lại sử dụng công thức cơ số $10000^{2i/d_{model}}$?
 Con số $10000^{\frac{2i}{d_{model}}}$ không phải là một con số ngẫu nhiên mà là một thiết kế toán học cực kỳ xuất sắc của các tác giả bài báo Transformer. 
@@ -359,38 +345,12 @@ def forward(self, x):
 *   `self.pe[:, :x.size(1)]` cắt ma trận PE đã chuẩn bị sẵn từ kích thước $5000$ xuống đúng độ dài $15$ để thực hiện phép cộng ma trận tương ứng.
 
 ### 4.5. Giải thích Biểu đồ Nhiệt Positional Encoding (Positional Encoding Heatmap)
-Biểu đồ chúng ta đang xem là **Bản đồ nhiệt (Heatmap) trực quan hóa Ma trận mã hóa vị trí (Positional Encoding Matrix)** có kích thước $50 \times 256$ ($50$ từ đầu tiên trong câu và vector nhúng vị trí có số chiều là $256$). 
 
-Để giải thích biểu đồ này một cách dễ hiểu và ấn tượng nhất cho người đánh giá, chúng ta có thể chia thành 3 phần chính như sau:
+| Phân tích Bản đồ nhiệt Positional Encoding | Bản đồ nhiệt lượng tử (Heatmap) |
+| :--- | :---: |
+| Biểu đồ trực quan hóa Ma trận mã hóa vị trí (Positional Encoding Matrix) kích thước $50 \times 256$ ($50$ từ đầu tiên và vector nhúng vị trí $256$ chiều).<br/><br/>**1. Trục tọa độ và màu sắc:**<br/>• *Trục tung (Y-axis):* Vị trí của từ trong câu ($pos$ từ $0 \rightarrow 49$). Hàng ngang là vector vị trí của từ cụ thể.<br/>• *Trục hoành (X-axis):* Chiều của vector đặc trưng ($d_{model}$ từ $0 \rightarrow 255$).<br/>• *Thang màu (Colorbar):* Hàm Sin/Cos từ $-1.0$ (Xanh) đến $+1.0$ (Đỏ đậm). Màu cam/trắng biểu thị gần $0$.<br/><br/>**2. Sự phân bổ tần số sóng:**<br/>• *Vùng bên trái (chiều $0 \rightarrow 60$):* Các sọc dọc nhuyễn đan xen dày đặc do tần số lớn (bước sóng ngắn). Giúp mô hình nhận biết khoảng cách chi tiết cự ly gần.<br/>• *Vùng bên phải (chiều $100 \rightarrow 255$):* Dải màu đồng nhất, biến đổi rất ít do tần số cực nhỏ (bước sóng rất dài). Giúp nhận biết vị trí vĩ mô (phần đầu/phần cuối câu).<br/><br/>**3. Quy luật độc bản:**<br/>• Cắt ngang qua bất kỳ hàng $pos$ nào ta sẽ thu được tổ hợp màu sắc "độc nhất vô nhị". Tổ hợp sóng sin/cos tần số khác nhau tạo ra một "chữ ký lượng tử" (signature) duy nhất cho mỗi vị trí, giúp mô hình không bao giờ nhầm thứ tự các từ. | ![Bản đồ nhiệt Positional Encoding Heatmap](pe_heatmap.png)<br/>*Hình 4.2: Biểu đồ nhiệt biểu diễn vector vị trí lượng tử theo chiều sâu.* |
 
----
 
-### 1. Ý nghĩa của các trục tọa độ và màu sắc
-*   **Trục tung (Y-axis - từ trên xuống dưới):** Đại diện cho **Vị trí của từ trong câu (Position)** từ $0 \rightarrow 48$. Mỗi hàng ngang là một vector vị trí của một từ cụ thể.
-    *   *Ví dụ:* Hàng $0$ tương ứng từ `"chúng ta"`, hàng $1$ là từ `"yêu"`, hàng $2$ là từ `"học"`...
-*   **Trục hoành (X-axis - từ trái sang phải):** Đại diện cho **Chiều của vector đặc trưng ($d_{model}$ Dimension)** từ $0 \rightarrow 255$.
-*   **Thang màu sắc (Colorbar bên phải):** Biểu thị giá trị của hàm Sin/Cos chạy từ $-1.0$ (Màu xanh dương) đến $+1.0$ (Màu đỏ đậm). Màu cam/trắng biểu thị giá trị gần bằng $0$.
-
----
-
-### 2. Sự phân bố tần số sóng (Tại sao bên trái sọc dày, bên phải sọc thưa?)
-Nếu nhìn từ trái sang phải dọc theo trục hoành, ta thấy ma trận được chia làm 2 vùng rõ rệt:
-
-*   **Vùng bên trái (các chiều từ $0 \rightarrow 60$):** 
-    *   *Hiện tượng:* Có các dải màu xanh - đỏ đan xen nhau **cực kỳ dày đặc** tạo thành các sọc dọc nhuyễn.
-    *   *Giải thích:* Đây là các chiều ẩn ứng với $i$ nhỏ, có tần số lớn (bước sóng ngắn). Chỉ cần dịch xuống 1 hàng ($pos$ thay đổi nhỏ), màu sắc đã đổi từ đỏ sang xanh ngay lập tức.
-    *   *Ý nghĩa:* Giúp mô hình nhận biết **khoảng cách siêu chi tiết ở cự ly gần** (ví dụ: từ đứng sát cạnh nhau).
-*   **Vùng bên phải (các chiều từ $100 \rightarrow 255$):**
-    *   *Hiện tượng:* Ma trận chuyển sang màu đỏ gần như đồng nhất và biến đổi rất ít khi đi xuống dưới.
-    *   *Giải thích:* Đây là các chiều ẩn ứng với $i$ lớn, có tần số cực kỳ nhỏ (bước sóng rất dài, lên tới hàng chục nghìn từ).
-    *   *Ý nghĩa:* Giúp mô hình nhận biết **vị trí mang tính vĩ mô (toàn cục)**, ví dụ từ này nằm ở phần đầu hay phần cuối của một câu dài.
-
----
-
-### 3. Quy luật độc bản (Mỗi hàng là một chữ ký duy nhất)
-*   người đánh giá có thể hỏi: *Làm thế nào để mô hình phân biệt được vị trí 10 và vị trí 20?*
-*   **Câu trả lời trực quan từ ảnh:** Nhìn theo chiều dọc (trục tung), nếu ta cắt ngang qua bất kỳ vị trí hàng $pos$ nào, ta sẽ thu được một dãy màu (tổ hợp xanh-đỏ-cam) độc nhất vô nhị. Không có hai hàng ngang nào có dải màu giống hệt nhau. 
-*   Tổ hợp các sóng sin/cos tần số khác nhau này tạo ra một **"mã vạch lượng tử" (signature)** duy nhất cho mỗi vị trí, giúp mô hình Transformer không bao giờ bị nhầm lẫn thứ tự các từ trong câu.
 Tích vô hướng đo độ tương đồng
 
 Mục tiêu của Attention là đo **"từ này liên quan đến từ kia bao nhiêu?"**. Công cụ toán học cơ bản nhất để đo độ tương đồng giữa hai vector là **tích vô hướng (Dot Product)**:
@@ -488,10 +448,7 @@ Context [1, 2, 3, 4]          ← Vector ngữ cảnh cho mỗi head
 Output  [1, 3, 8]             ← Vector đầu ra cuối cùng (cùng kích thước đầu vào)
 ```
 
-#### Trực quan hóa Bản đồ nhiệt Positional Encoding (Positional Encoding Heatmap):
-![Bản đồ nhiệt Positional Encoding Heatmap](pe_heatmap.png)
 
-*Hình 4.2: Biểu đồ nhiệt biểu diễn vector vị trí lượng tử theo chiều sâu của mô hình.*
 
 
 ---
@@ -631,10 +588,9 @@ return output, attn_weights
 *   `output` `[1, 5, 512]`: Vector biểu diễn mới của mỗi từ sau khi đã tích hợp ngữ cảnh từ các từ khác.
 *   `attn_weights` `[1, 8, 5, 5]`: Ma trận trọng số chú ý (dùng để vẽ Attention Map trực quan hóa mô hình đang chú ý vào đâu).
 
-#### Sơ đồ luồng tính toán Multi-Head Attention:
-![Sơ đồ luồng tính toán Multi-Head Attention](attention_flow.png)
-
-*Hình 5.1: Chi tiết các bước biến đổi ma trận để thu được vector ngữ cảnh.*
+| Giải thích Luồng tính toán Multi-Head Attention | Sơ đồ luồng tính toán |
+| :--- | :---: |
+| Quy trình biến đổi ma trận để thu được vector ngữ cảnh trên từng đầu con (Head):<br/><br/>• **Bước 1 — Chiếu & Chia Heads:** Đầu vào $x$ kích thước `[B, T, d_model]` chiếu tuyến tính thành $Q, K, V$, sau đó tách và chuyển vị thành `[B, h, T, d_k]` để tính toán song song trên $h$ heads độc lập.<br/><br/>• **Bước 2 — Tính Scaled Dot-Product:** Nhân tích vô hướng $Q 	imes K^T$, chia tỷ lệ $\sqrt{d_k}$, áp dụng Mask và Softmax để thu được ma trận trọng số chú ý `[B, h, T, T]`. Hoạt động này pha trộn các ngữ cảnh tương đồng giữa các từ.<br/><br/>• **Bước 3 — Nhân với Value & Chiếu đầu ra:** Nhân trọng số chú ý với ma trận $V$ để thu được vector ngữ cảnh `[B, h, T, d_k]`. Cuối cùng, ghép (Concatenate) các heads con lại thành kích thước `[B, T, d_model]` và nhân với ma trận chiếu đầu ra $W_o$. | ![Sơ đồ luồng tính toán Multi-Head Attention](attention_flow.png)<br/>*Hình 5.1: Chi tiết các bước biến đổi ma trận để thu được vector ngữ cảnh.* |
 
 ### 5.2. Khái niệm, Cách áp dụng và Ý nghĩa của Lớp Tuyến tính (Linear Layer) trong Transformer
 ## Lớp Tuyến Tính (Linear Layer) là gì?
@@ -1310,17 +1266,9 @@ Khi huấn luyện:
 | **Chia sẻ gốc từ** | Không ("học", "học_sinh" là 2 từ riêng) | Có ("học" là subword chung) |
 | **Bộ nhớ Embedding** | 50000×512 = 25.6M tham số | 18000×512 = 9.2M tham số |
 
-| | Static Padding | Dynamic Padding |
-|:---|:---|:---|
-| **Độ dài đệm** | Cố định (ví dụ: 100) | Thay đổi theo batch |
-| **Lãng phí** | Rất lớn (50-80%) | Rất nhỏ (5-20%) |
-| **Tốc độ** | Chậm (GPU tính toán trên nhiều `<pad>`) | Nhanh hơn 2-3 lần |
-| **Bộ nhớ GPU** | Tốn rất nhiều | Tiết kiệm đáng kể |
-
-#### Trực quan hóa Cơ chế Đệm động (Dynamic Padding):
-![Sơ đồ minh họa cơ chế Dynamic Padding](dynamic_padding.png)
-
-*Hình 9.1: So sánh hiệu năng cấp phát bộ nhớ giữa Static Padding và Dynamic Padding.*
+| So sánh Hiệu năng Đệm dữ liệu | Minh họa Đệm động (Dynamic Padding) |
+| :--- | :---: |
+| So sánh cơ chế đệm dữ liệu đầu vào giữa Static Padding (cố định) và Dynamic Padding (động):<br/><br/>• **Static Padding (Đệm cố định):** Gán cứng chiều dài tối đa (ví dụ 100 token) cho tất cả các batch. Gây lãng phí VRAM cực lớn (50-80% ô trống `<pad>`), làm chậm quá trình tính toán trên GPU do phải xử lý các token đệm vô nghĩa.<br/><br/>• **Dynamic Padding (Đệm động):** Tự động đệm các câu trong từng batch theo độ dài của câu dài nhất chỉ trong batch đó. Tối ưu hóa bộ nhớ GPU (lãng phí chỉ 5-20%), tăng tốc độ huấn luyện từ 2 đến 3 lần. | ![Sơ đồ minh họa cơ chế Dynamic Padding](dynamic_padding.png)<br/>*Hình 9.1: So sánh hiệu năng cấp phát bộ nhớ giữa Static Padding và Dynamic Padding.* |
 
 
 ---
@@ -1618,10 +1566,9 @@ Noam Scheduler hoạt động chính xác theo đúng thiết kế toán học:
 2.  **Đạt cực đại** $\approx 0.000698$ tại step 4000.
 3.  **Decay theo tỉ lệ $step^{-0.5}$** ở các bước sau đó, cho phép mô hình tinh chỉnh các trọng số mịn hơn khi đã đi gần đến điểm hội tụ.
 
-#### Trực quan hóa các chỉ số huấn luyện:
-![Đường cong huấn luyện Train/Val Loss và BLEU Score](curves.png)
-
-*Hình 11.1: Đồ thị trực quan hóa quá trình biến thiên của Loss, Perplexity và điểm BLEU.*
+| Phân tích Đường cong Huấn luyện & Tham số | Trực quan hóa các chỉ số huấn luyện |
+| :--- | :---: |
+| Đánh giá quá trình hội tụ và hiệu suất của mô hình Mini-Transformer qua các epoch huấn luyện:<br/><br/>• **Đường cong Loss & PPL:** Train Loss giảm đều từ $6.9$ xuống $1.85$, tương ứng Perplexity giảm từ $992$ xuống $6.36$. Validation Loss và PPL đi ngang từ epoch 12, cho thấy mô hình đạt tới điểm tối ưu hóa và xuất hiện dấu hiệu quá khớp nhẹ (overfitting) do giới hạn về kích thước tập dữ liệu.<br/><br/>• **Chỉ số BLEU Score:** Tăng trưởng mạnh mẽ từ $1.5\%$ và đạt cực đại ở mức **21.43%** ở epoch 25, chứng minh chất lượng dịch cải thiện ổn định.<br/><br/>• **Noam Learning Rate Schedule:** Tăng tuyến tính trong $4000$ steps đầu (Warmup) đạt cực đại $\approx 0.0007$, sau đó decay theo tỷ lệ $step^{-0.5}$ ở các steps sau đó để tinh chỉnh mịn các trọng số. | ![Đường cong huấn luyện Train/Val Loss và BLEU Score](curves.png)<br/>*Hình 11.1: Đồ thị trực quan hóa quá trình biến thiên của Loss, Perplexity và điểm BLEU.* |
 
 ---
 
@@ -1715,10 +1662,9 @@ Cụm từ ghép tiếng Việt `"chia sẻ"` được tokenizer tách thành ha
 *   Động từ chính `"share"` lại bị phân tán sự chú ý sang từ neo `"tôi"` ($0.32$) và từ `"với"` ($0.21$).
 *   *Đánh giá:* Mô hình gặp khó khăn nhất định khi thực hiện phép gộp thông tin từ nhiều từ nguồn sang một từ đích (phép ánh xạ Many-to-One). Để giải quyết việc này, Decoder buộc phải dựa vào thông tin ngữ cảnh vĩ mô tích lũy tại token neo `"tôi"`.
 
-#### Trực quan hóa Bản đồ Chú ý chéo (Cross-Attention Map):
-![Bản đồ chú ý chéo Cross-Attention Map](attention_map.png)
-
-*Hình 11.2: Bản đồ biểu diễn trọng số chú ý giữa câu nguồn tiếng Việt và câu đích tiếng Anh.*
+| Phân tích Bản đồ Cross-Attention | Bản đồ Chú ý Chéo (Cross-Attention) |
+| :--- | :---: |
+| Phân tích liên kết dịch máy giữa câu nguồn tiếng Việt và câu đích tiếng Anh:<br/><br/>• **Alignment tổng thể (Khá - 3/5):** Phân bố chú ý chạy dọc theo đường chéo chính, chứng minh mô hình đã học được sự tương đồng về trật tự cú pháp giữa hai ngôn ngữ Việt - Anh.<br/><br/>• **Liên kết trực tiếp 1-1 (Tốt - 4/5):** Các giới từ như `"with"` $\leftrightarrow$ `"với"` được căn chỉnh hoàn hảo với trọng số chú ý rất cao ($0.30$).<br/><br/>• **Hiện tượng từ ghép (Trung bình - 2/5):** Từ ghép tiếng Việt như `"chia sẻ"` bị tách thành `"chia"` và `"sẻ"`. Khi dịch thành từ `"share"`, sự chú ý bị phân tán nhẹ sang từ neo ngữ cảnh.<br/><br/>• **Source bias (Anchor token):** Token đầu câu `"tôi"` thu hút lượng chú ý lớn xuyên suốt quá trình dịch, đóng vai trò như một điểm neo giữ ngữ cảnh toàn câu nguồn. | ![Bản đồ chú ý chéo Cross-Attention Map](attention_map.png)<br/>*Hình 11.2: Trọng số chú ý chéo giữa câu nguồn Việt và câu đích Anh.* |
 
 ##### 3.4. Đánh giá chất lượng Bản đồ Cross-Attention:
 

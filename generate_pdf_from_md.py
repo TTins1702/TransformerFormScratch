@@ -870,7 +870,46 @@ def build_pdf_from_md(md_file_path, pdf_file_path="README.pdf"):
                     formatted_rows.append(header_cols)
                     
                     for row in table_rows[1:]:
-                        data_cols = [Paragraph(clean_markdown_inline(col), table_text_style) for col in row]
+                        data_cols = []
+                        num_cols = len(table_rows[0])
+                        col_width = 500 / num_cols
+                        for col in row:
+                            img_match = re.search(r'!\[(.*?)\]\((.*?)\)', col.strip())
+                            if img_match:
+                                caption = img_match.group(1)
+                                filename = img_match.group(2)
+                                if os.path.exists(filename):
+                                    img_w = col_width - 12
+                                    aspect = 1.0
+                                    if "overview" in filename:
+                                        aspect = 177 / 440
+                                    elif "pe_heatmap" in filename:
+                                        aspect = 133 / 220
+                                    elif "pe_flow" in filename:
+                                        aspect = 100 / 220
+                                    elif "encoder_layer" in filename or "decoder_layer" in filename:
+                                        aspect = 200 / 140
+                                    elif "attention_flow" in filename:
+                                        aspect = 194 / 280
+                                    elif "attention_map" in filename:
+                                        aspect = 203 / 240
+                                    elif "curves" in filename:
+                                        aspect = 125 / 460
+                                    elif "dynamic_padding" in filename:
+                                        aspect = 173 / 380
+                                    
+                                    img_h = img_w * aspect
+                                    try:
+                                        img_flowable = Image(filename, width=img_w, height=img_h)
+                                        cap_p = Paragraph(f"<font color='#7F8C8D'><i>* {caption}</i></font>", ParagraphStyle('TblImgCap', parent=styles['Normal'], fontSize=7.0, alignment=1))
+                                        data_cols.append([img_flowable, cap_p])
+                                    except Exception as e:
+                                        print(f"Error loading table image {filename}: {e}")
+                                        data_cols.append(Paragraph(clean_markdown_inline(col), table_text_style))
+                                else:
+                                    data_cols.append(Paragraph(clean_markdown_inline(col), table_text_style))
+                            else:
+                                data_cols.append(Paragraph(clean_markdown_inline(col), table_text_style))
                         formatted_rows.append(data_cols)
                     
                     num_cols = len(table_rows[0])
@@ -934,45 +973,109 @@ def build_pdf_from_md(md_file_path, pdf_file_path="README.pdf"):
         # 5. Xử lý Ảnh nhúng: ![Caption](Filename)
         img_match = re.match(r'^!\[(.*?)\]\((.*?)\)', stripped)
         if img_match:
-            caption = img_match.group(1)
-            filename = img_match.group(2)
+            # Check if there is another image immediately following (skipping whitespace)
+            next_img_idx = line_idx + 1
+            while next_img_idx < len(lines) and not lines[next_img_idx].strip():
+                next_img_idx += 1
             
-            if os.path.exists(filename):
-                width = 380
-                height = 175
+            is_double_img = False
+            if next_img_idx < len(lines):
+                next_stripped = lines[next_img_idx].strip()
+                next_img_match = re.match(r'^!\[(.*?)\]\((.*?)\)', next_stripped)
+                if next_img_match:
+                    is_double_img = True
+            
+            if is_double_img:
+                caption1 = img_match.group(1)
+                filename1 = img_match.group(2)
+                caption2 = next_img_match.group(1)
+                filename2 = next_img_match.group(2)
                 
-                if "pe_heatmap" in filename:
-                    width = 220
-                    height = 133
-                elif "pe_flow" in filename:
-                    width = 220
-                    height = 100
-                elif "encoder_layer" in filename or "decoder_layer" in filename:
-                    width = 140
-                    height = 200
-                elif "attention_flow" in filename:
-                    width = 280
-                    height = 194
-                elif "attention_map" in filename:
-                    width = 240
-                    height = 200
-                elif "curves" in filename:
-                    width = 460
-                    height = 125
-                elif "dynamic_padding" in filename:
-                    width = 380
-                    height = 173
+                if os.path.exists(filename1) and os.path.exists(filename2):
+                    common_h = 280
+                    # Determine widths based on aspect ratios
+                    ratio1 = 0.70 if "encoder_layer" in filename1 else 0.66 if "decoder_layer" in filename1 else 1.0
+                    ratio2 = 0.66 if "decoder_layer" in filename2 else 0.70 if "encoder_layer" in filename2 else 1.0
+                    
+                    img1_w = common_h * ratio1
+                    img2_w = common_h * ratio2
+                    
+                    try:
+                        img1 = Image(filename1, width=img1_w, height=common_h)
+                        img2 = Image(filename2, width=img2_w, height=common_h)
+                        
+                        cap1_para = Paragraph(f"<font color='#7F8C8D'><i>* {caption1}</i></font>", ParagraphStyle('Cap1', parent=styles['Normal'], fontSize=7.5, alignment=1))
+                        cap2_para = Paragraph(f"<font color='#7F8C8D'><i>* {caption2}</i></font>", ParagraphStyle('Cap2', parent=styles['Normal'], fontSize=7.5, alignment=1))
+                        
+                        # Use a table to place side-by-side
+                        t_data = [
+                            [img1, img2],
+                            [cap1_para, cap2_para]
+                        ]
+                        t = Table(t_data, colWidths=[250, 250])
+                        t.setStyle(TableStyle([
+                            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                            ('TOPPADDING', (0,0), (-1,-1), 2),
+                            ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+                        ]))
+                        
+                        story.append(KeepTogether([t]))
+                        story.append(Spacer(1, 8))
+                    except Exception as e:
+                        print(f"Error loading side-by-side images: {e}")
+                else:
+                    print(f"One or both image files not found: {filename1}, {filename2}")
                 
-                try:
-                    img = Image(filename, width=width, height=height)
-                    cap_para = Paragraph(f"<font color='#7F8C8D'><i>* {caption}</i></font>", ParagraphStyle('Cap', parent=styles['Normal'], fontSize=7.5, alignment=1, spaceBefore=3))
-                    story.append(KeepTogether([img, cap_para]))
-                    story.append(Spacer(1, 8))
-                except Exception as e:
-                    print(f"Error loading image {filename}: {e}")
+                # Advance line_idx past the second image
+                line_idx = next_img_idx + 1
+                continue
+
             else:
-                print(f"Image file not found: {filename}")
-            line_idx += 1
+                # Single image rendering
+                caption = img_match.group(1)
+                filename = img_match.group(2)
+                
+                if os.path.exists(filename):
+                    width = 380
+                    height = 175
+                    
+                    if "overview" in filename:
+                        width = 440
+                        height = 177
+                    elif "pe_heatmap" in filename:
+                        width = 220
+                        height = 133
+                    elif "pe_flow" in filename:
+                        width = 220
+                        height = 100
+                    elif "encoder_layer" in filename or "decoder_layer" in filename:
+                        width = 140
+                        height = 200
+                    elif "attention_flow" in filename:
+                        width = 280
+                        height = 194
+                    elif "attention_map" in filename:
+                        width = 240
+                        height = 203
+                    elif "curves" in filename:
+                        width = 460
+                        height = 125
+                    elif "dynamic_padding" in filename:
+                        width = 380
+                        height = 173
+                    
+                    try:
+                        img = Image(filename, width=width, height=height)
+                        cap_para = Paragraph(f"<font color='#7F8C8D'><i>* {caption}</i></font>", ParagraphStyle('Cap', parent=styles['Normal'], fontSize=7.5, alignment=1, spaceBefore=3))
+                        story.append(KeepTogether([img, cap_para]))
+                        story.append(Spacer(1, 8))
+                    except Exception as e:
+                        print(f"Error loading image {filename}: {e}")
+                else:
+                    print(f"Image file not found: {filename}")
+                line_idx += 1
+                continue
             continue
 
         # 6. Xử lý các dòng danh sách dấu bullet
