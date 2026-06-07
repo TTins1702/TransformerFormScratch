@@ -342,51 +342,76 @@ def parse_math_line(line):
 # CHUYỂN ĐỔI CHỮ LƯỢNG GIÁC MATH/MARKDOWN
 # ==========================================
 def clean_markdown_inline(text):
-    # Thay thế các định dạng cơ bản của markdown sang thẻ ReportLab HTML
+    # Mask math blocks and inline code to prevent bold/italic/link parsers from corrupting them
+    math_blocks = []
+    def save_math(m):
+        math_blocks.append(m.group(1))
+        return f"___MATH_BLOCK_{len(math_blocks)-1}___"
+    text = re.sub(r'\$(.*?)\$', save_math, text)
+
+    code_blocks = []
+    def save_code(m):
+        code_blocks.append(m.group(1))
+        return f"___CODE_BLOCK_{len(code_blocks)-1}___"
+    text = re.sub(r'`(.*?)`', save_code, text)
+
+    # Now apply standard Markdown formatting safely
     # 1. Bold: **text** -> <b>text</b>
     text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
     # 2. Italic: *text* -> <i>text</i> hoặc _text_ -> <i>text</i>
     text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', text)
     text = re.sub(r'\b_(.*?)_\b', r'<i>\1</i>', text)
-    # 3. Math $formula$ -> <i>cleaned_formula</i>
-    text = re.sub(r'\$(.*?)\$', lambda m: f"<i>{parse_math_to_clean_text(m.group(1))}</i>", text)
-    # 4. Inline code `code` -> <font face="Courier">code</font>
-    text = re.sub(r'`(.*?)`', r'<font face="Arial" color="#1A202C" size="8.5"><b>\1</b></font>', text)
-    # 5. Clean LaTeX syntax symbols like \rightarrow, \mathcal
-    text = text.replace(r'\rightarrow', '->')
-    text = text.replace(r'\approx', '≈')
-    text = text.replace(r'\le', '≤')
-    text = text.replace(r'\ge', '≥')
-    text = text.replace(r'\times', 'x')
-    text = text.replace(r'\mathcal{L}', 'L')
-    text = text.replace(r'\hat{y}', 'y_hat')
-    text = text.replace(r'\hat{Y}', 'Y_hat')
-    text = text.replace(r'\bar{y}', 'y_bar')
-    text = text.replace(r'\alpha', 'α')
-    text = text.replace(r'\omega', 'ω')
-    text = text.replace(r'\theta', 'θ')
-    text = text.replace(r'\lambda', 'λ')
-    text = text.replace(r'\sigma', 'σ')
-    text = text.replace(r'\dots', '...')
-    text = text.replace(r'\call', '...')
-    text = text.replace(r'\cdot', '·')
-    text = text.replace(r'\sum', 'Σ')
-    text = text.replace(r'\ln', 'ln')
-    text = text.replace(r'\log', 'log')
-    text = text.replace(r'\max', 'max')
-    text = text.replace(r'\text{BLEU}', 'BLEU')
-    text = text.replace(r'\text{BP}', 'BP')
-    text = text.replace(r'\text{PPL}', 'PPL')
-    text = text.replace(r'\text{FFN}', 'FFN')
-    text = text.replace(r'\\mathcal{L}', 'L')
-    text = text.replace(r'\\text{BLEU}', 'BLEU')
-    text = text.replace(r'\\text{BP}', 'BP')
-    text = text.replace(r'\\text{PPL}', 'PPL')
-    text = text.replace(r'\\text{FFN}', 'FFN')
-    
-    # 6. Loại bỏ markdown links [text](url) -> <b>text</b>
+    # 3. Links: [text](url) -> <b>text</b>
     text = re.sub(r'\[(.*?)\]\(.*?\)', r'<b>\1</b>', text)
-    
+
+    # Now restore math blocks and clean them
+    for idx, formula in enumerate(math_blocks):
+        cleaned_formula = parse_math_to_clean_text(formula)
+        cleaned_formula = cleaned_formula.replace(r'\\_', '_').replace(r'\_', '_').replace(r'\_', '_')
+        text = text.replace(f"___MATH_BLOCK_{idx}___", f"<i>{cleaned_formula}</i>")
+
+    # Now restore code blocks
+    for idx, code in enumerate(code_blocks):
+        formatted_code = f'<font face="Arial" color="#1A202C" size="8.5"><b>{code}</b></font>'
+        text = text.replace(f"___CODE_BLOCK_{idx}___", formatted_code)
+
+    # Clean up any remaining raw LaTeX syntax symbols
+    replacements = {
+        r'\rightarrow': '->',
+        r'\approx': '≈',
+        r'\le': '≤',
+        r'\ge': '≥',
+        r'\times': 'x',
+        r'\mathcal{L}': 'L',
+        r'\hat{y}': 'y_hat',
+        r'\hat{Y}': 'Y_hat',
+        r'\bar{y}': 'y_bar',
+        r'\alpha': 'α',
+        r'\omega': 'ω',
+        r'\theta': 'θ',
+        r'\lambda': 'λ',
+        r'\sigma': 'σ',
+        r'\dots': '...',
+        r'\call': '...',
+        r'\cdot': '·',
+        r'\sum': 'Σ',
+        r'\ln': 'ln',
+        r'\log': 'log',
+        r'\max': 'max',
+        r'\text{BLEU}': 'BLEU',
+        r'\text{BP}': 'BP',
+        r'\text{PPL}': 'PPL',
+        r'\text{FFN}': 'FFN',
+        r'\\mathcal{L}': 'L',
+        r'\\text{BLEU}': 'BLEU',
+        r'\\text{BP}': 'BP',
+        r'\\text{PPL}': 'PPL',
+        r'\\text{FFN}': 'FFN',
+    }
+    for k, v in replacements.items():
+        text = text.replace(k, v)
+        text = text.replace(f"\\{k}", v)
+
     return text
 
 # ==========================================

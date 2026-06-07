@@ -80,9 +80,13 @@ print(f"Số lượng GPU khả dụng: {num_gpus}")
 
 ### 1. Kiến trúc Layer Normalization (Pre-LN vs Post-LN)
 *   **Mô hình của chúng ta (Pre-LN):** Layer Normalization được áp dụng **trước** khi đi vào các khối con (Self-Attention hoặc Feed-Forward) rồi mới cộng kết nối tắt (residual), thể hiện rõ trong mã nguồn lớp [EncoderLayer](file:///d:/CN12_2024_2028/NCKH/Code/TransformerFormScratch/test_notebook_code.py#L74-L80) và [DecoderLayer](file:///d:/CN12_2024_2028/NCKH/Code/TransformerFormScratch/test_notebook_code.py#L94-L105):
+
 $$x = x + \text{Sublayer}(\text{LayerNorm}(x))$$
+
 *   **Bài báo gốc (Post-LN):** Áp dụng Layer Normalization **sau** khi cộng kết nối tắt:
+
 $$x = \text{LayerNorm}(x + \text{Sublayer}(x))$$
+
 *   **Ý nghĩa:** Thiết kế **Pre-LN** (được dùng trong các mô hình hiện đại như GPT, LLaMA) giúp luồng gradient truyền đi ổn định hơn rất nhiều, tránh hiện tượng bùng nổ hoặc triệt tiêu gradient ở các tầng sâu, giúp huấn luyện dễ dàng hơn.
 
 ---
@@ -100,7 +104,9 @@ Mô hình của chúng ta được thiết kế ở dạng **Mini-Transformer** 
 
 *   **Khởi tạo trọng số (Weight Initialization):**
     *   **Mô hình của chúng ta:** Khởi tạo các trọng số của lớp tuyến tính theo phân phối chuẩn với độ lệch chuẩn là $0.02$, và chia độ lệch chuẩn theo độ sâu cho các lớp chiếu kết nối tắt (như lớp chiếu đầu ra $W_o$ của Attention và lớp tuyến tính thứ hai $w_2$ của Feed-Forward):
+
 $$\sigma = \frac{0.02}{\sqrt{2 \times \text{num\\_layers}}}$$
+
 *   **Bài báo gốc:** Khởi tạo các tham số theo phân phối chuẩn hoặc Xavier cơ bản mà không có hệ số giảm theo độ sâu $\sqrt{2N}$ (đây là kỹ thuật thường thấy trong GPT-2 để khắc phục sự tích tụ phương sai ở các khối Pre-LN).
 
 ---
@@ -141,8 +147,11 @@ Dựa trên sơ đồ luồng cộng Positional Encoding trong dự án của ch
 ### 2. Công thức toán học tổng quát:
 Với mỗi vị trí $pos$ và mỗi chiều $j$:
 *   Nếu $j$ là **chiều chẵn** ($j = 2i$):
+
 $$PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{\frac{2i}{d_{model}}}}\right)$$
+
 *   Nếu $j$ là **chiều lẻ** ($j = 2i+1$):
+
 $$PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{\frac{2i}{d_{model}}}}\right)$$
 
 ---
@@ -152,11 +161,15 @@ $$PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{\frac{2i}{d_{model}}}}\right)$$
 #### Trường hợp 1: Từ thứ nhất `"chúng ta"` ($pos = 0$)
 Vì $pos = 0$ nên tử số của góc luôn bằng $0$.
 *   **Với các chiều chẵn ($j = 2i$):**
+
 $$PE_{(0, 2i)} = \sin\left(\frac{0}{10000^{\frac{2i}{256}}}\right) = \sin(0) = 0$$
+
 *   **Với các chiều lẻ ($j = 2i+1$):**
+
 $$PE_{(0, 2i+1)} = \cos\left(\frac{0}{10000^{\frac{2i}{256}}}\right) = \cos(0) = 1$$
 
 $\rightarrow$ **Kết quả Vector PE của từ `"chúng ta"` ($pos = 0$)** luôn cố định là:
+
 $$PE_{(pos=0)} = [0, 1, 0, 1, 0, 1, ..., 0, 1]$$
 
 ---
@@ -167,25 +180,35 @@ Chúng ta sẽ tính giá trị PE tại các vị trí chiều khác nhau trong
 *   **Tại hai chiều đầu tiên ($j=0$ và $j=1 \implies i=0$):**
     *   Tỷ lệ tần số: $10000^{\frac{2 \times 0}{256}} = 10000^0 = 1$
     *   Chiều chẵn ($j=0$):
+
 $$PE_{(1, 0)} = \sin\left(\frac{1}{1}\right) = \sin(1 \text{ rad}) \approx 0.8415$$
+
     *   Chiều lẻ ($j=1$):
+
 $$PE_{(1, 1)} = \cos\left(\frac{1}{1}\right) = \cos(1 \text{ rad}) \approx 0.5403$$
 
 *   **Tại hai chiều tiếp theo ($j=2$ và $j=3 \implies i=1$):**
     *   Tỷ lệ tần số: $10000^{\frac{2}{256}} \approx 10000^{0.00781} \approx 1.0746$
     *   Chiều chẵn ($j=2$):
+
 $$PE_{(1, 2)} = \sin\left(\frac{1}{1.0746}\right) \approx \sin(0.9306 \text{ rad}) \approx 0.8018$$
+
     *   Chiều lẻ ($j=3$):
+
 $$PE_{(1, 3)} = \cos\left(\frac{1}{1.0746}\right) \approx \cos(0.9306 \text{ rad}) \approx 0.5976$$
 
 *   **Tại hai chiều cuối cùng của vector ($j=254$ và $j=255 \implies i=127$):**
     *   Tỷ lệ tần số: $10000^{\frac{254}{256}} \approx 10000^{0.9922} \approx 9194.79$
     *   Chiều chẵn ($j=254$):
+
 $$PE_{(1, 254)} = \sin\left(\frac{1}{9194.79}\right) \approx \sin(0.0001087) \approx 0.0001087$$
+
     *   Chiều lẻ ($j=255$):
+
 $$PE_{(1, 255)} = \cos\left(\frac{1}{9194.79}\right) \approx \cos(0.0001087) \approx 1.0000$$
 
 $\rightarrow$ **Kết quả Vector PE của từ `"yêu"` ($pos = 1$)** sẽ là:
+
 $$PE_{(pos=1)} = [0.8415, 0.5403, 0.8018, 0.5976, ..., 0.0001, 1.0000]$$
 
 ---
@@ -194,7 +217,7 @@ $$PE_{(pos=1)} = [0.8415, 0.5403, 0.8018, 0.5976, ..., 0.0001, 1.0000]$$
 
 | Cơ chế cộng Luồng Positional Encoding | Sơ đồ luồng cộng |
 | :--- | :---: |
-| Sau khi tính toán xong vector $PE_{(pos)}$ (ví dụ kích thước $1 \times 256$ cho từ *"yêu"* tại $pos=1$), mô hình thực hiện phép cộng trực tiếp (element-wise) vào vector nhúng từ (Word Embedding $x_{word}$):<br/>$$x_{input\_to\_encoder} = x_{word} \times \sqrt{d_{model}} + PE_{(pos)}$$<br/><br/>**Lưu ý quan trọng:**<br/>Ta nhân tỷ lệ $\sqrt{d_{model}}$ vào Word Embedding trước khi cộng để giữ cho thông tin vị trí không lấn át thông tin ngữ nghĩa của từ. Đồng thời, điều này giúp cân bằng phương sai giữa phần biểu diễn ngữ nghĩa và biểu diễn vị trí. | ![Sơ đồ luồng cộng Positional Encoding](pe_flow.png)<br/>*Hình 4.1: Cách kết hợp nhúng từ và nhúng vị trí (Positional Encoding Flow).* |
+| Sau khi tính toán xong vector $PE_{(pos)}$ (ví dụ kích thước $1 \times 256$ cho từ *"yêu"* tại $pos=1$), mô hình thực hiện phép cộng trực tiếp (element-wise) vào vector nhúng từ (Word Embedding $x_{word}$):<br/>$x_{input\_to\_encoder} = x_{word} \times \sqrt{d_{model}} + PE_{(pos)}$<br/><br/>**Lưu ý quan trọng:**<br/>Ta nhân tỷ lệ $\sqrt{d_{model}}$ vào Word Embedding trước khi cộng để giữ cho thông tin vị trí không lấn át thông tin ngữ nghĩa của từ. Đồng thời, điều này giúp cân bằng phương sai giữa phần biểu diễn ngữ nghĩa và biểu diễn vị trí. | ![Sơ đồ luồng cộng Positional Encoding](pe_flow.png)<br/>*Hình 4.1: Cách kết hợp nhúng từ và nhúng vị trí (Positional Encoding Flow).* |
 
 
 ### 4.2. Tại sao lại sử dụng công thức cơ số $10000^{2i/d_{model}}$?
@@ -218,7 +241,9 @@ Nếu ta gọi tần số của chiều thứ $2i$ là $\omega_i = \frac{1}{1000
 ### 2. Tại sao cơ số lại là $10000$? (Tránh hiện tượng lặp chu kỳ)
 *   Chu kỳ của hàm hình sin là $2\pi$. Để các vector vị trí không bị trùng lặp (ví dụ vị trí thứ $10$ có vector giống hệt vị trí thứ $100$), chu kỳ lớn nhất của sóng phải lớn hơn độ dài của bất kỳ câu nào trong thực tế.
 *   Với cơ số $10000$, bước sóng dài nhất sẽ là: 
+
 $$\lambda_{max} = 2\pi \times 10000 \approx 62,831 \text{ tokens}$$
+
 *   Vì các câu dịch thông thường chỉ dài dưới 500 từ, việc chọn cơ số $10000$ đảm bảo **không bao giờ xảy ra hiện tượng trùng lặp pha (aliasing/ambiguity)** ở các chiều có tần số chậm, giúp mỗi vị trí trong câu luôn có một "chữ ký" độc nhất vô nhị.
 
 ---
@@ -227,7 +252,9 @@ $$\lambda_{max} = 2\pi \times 10000 \approx 62,831 \text{ tokens}$$
 Tác giả muốn cơ chế Attention có thể dễ dàng học được **khoảng cách tương đối** giữa các từ (từ $A$ cách từ $B$ bao nhiêu từ), chứ không chỉ là vị trí tuyệt đối.
 
 Nhờ công thức lượng giác:
+
 $$\sin(a + b) = \sin(a)\cos(b) + \cos(a)\sin(b)$$
+
 $$\cos(a + b) = \cos(a)\cos(b) - \sin(a)\sin(b)$$
 
 Với một khoảng cách dịch chuyển $k$ cố định (ví dụ: từ cách nhau $k$ vị trí), vector vị trí ở $pos + k$ hoàn toàn có thể được biểu diễn dưới dạng **phép biến đổi tuyến tính** (nhân ma trận xoay) của vector vị trí tại $pos$:
@@ -248,7 +275,9 @@ Bằng cách xếp xen kẽ **Sine ở chiều chẵn** và **Cosine ở chiều
 Khi vị trí dịch chuyển từ $pos \rightarrow pos + k$, vector lượng giác này sẽ xoay một góc là $k\cdot\omega$. 
 
 Nhờ công thức cộng lượng giác:
+
 $$\sin(pos + k) = \sin(pos)\cos(k) + \cos(pos)\sin(k)$$
+
 $$\cos(pos + k) = \cos(pos)\cos(k) - \sin(pos)\sin(k)$$
 
 Mô hình chỉ cần dùng một **ma trận biến đổi tuyến tính** (ma trận xoay) để ánh xạ từ vị trí $pos$ sang vị trí $pos + k$. Lớp tuyến tính (Linear Layer) trong mạng nơ-ron học phép toán này cực kỳ dễ dàng.
@@ -258,6 +287,7 @@ Mô hình chỉ cần dùng một **ma trận biến đổi tuyến tính** (ma 
 ### 2. Tự động tính khoảng cách qua tích vô hướng (Dot Product)
 Cơ chế Attention tính toán độ liên quan giữa các từ bằng tích vô hướng (Dot Product) của các vector. 
 Khi ta nhân vô hướng hai vector vị trí $PE_{(pos_1)}$ và $PE_{(pos_2)}$, nhờ công thức:
+
 $$\cos(pos_1)\cos(pos_2) + \sin(pos_1)\sin(pos_2) = \cos(pos_1 - pos_2)$$
 
 Kết quả tích vô hướng giữa hai mã hóa vị trí **chỉ phụ thuộc vào khoảng cách tương đối giữa chúng ($pos_1 - pos_2$)**, chứ không phụ thuộc vào vị trí tuyệt đối nằm ở đâu trong câu. Điều này giúp cơ chế Attention tự động biết được khoảng cách vật lý giữa hai từ một cách tự nhiên.
@@ -391,21 +421,26 @@ $$V = \begin{bmatrix} v_{11} & v_{12} & v_{13} & v_{14} \\\\ v_{21} & v_{22} & v
 
 #### Bước 1: Tính tích vô hướng $Q \times K^T$
 Chuyển vị ma trận $K$ thành $K^T$ có kích thước $4 \times 3$:
+
 $$K^T = \begin{bmatrix} 1 & 0 & 1 \\\\ 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 1 & 1 \end{bmatrix} \quad \text{(kích thước } 4 \times 3\text{)}$$
 
 Thực hiện phép nhân ma trận $Q \times K^T$:
+
 $$\text{Scores} = Q \times K^T = \begin{bmatrix} 1 & 0 & 1 & 0 \\\\ 0 & 1 & 0 & 1 \\\\ 1 & 1 & 0 & 0 \end{bmatrix} \times \begin{bmatrix} 1 & 0 & 1 \\\\ 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 1 & 1 \end{bmatrix} = \begin{bmatrix} 1 & 1 & 1 \\\\ 1 & 1 & 1 \\\\ 2 & 0 & 1 \end{bmatrix}$$
 
 #### Bước 2: Chia cho $\sqrt{d_k}$ (với $d_k = 4 \Rightarrow \sqrt{d_k} = 2$)
+
 $$\frac{\text{Scores}}{2} = \frac{1}{2} \times \begin{bmatrix} 1 & 1 & 1 \\\\ 1 & 1 & 1 \\\\ 2 & 0 & 1 \end{bmatrix} = \begin{bmatrix} 0.5 & 0.5 & 0.5 \\\\ 0.5 & 0.5 & 0.5 \\\\ 1.0 & 0.0 & 0.5 \end{bmatrix}$$
 
 #### Bước 3: Áp dụng hàm Softmax để tính trọng số Attention (Attention Weights)
 Hàm Softmax được áp dụng theo từng hàng của ma trận điểm số để tạo ra phân phối xác suất (tổng mỗi hàng bằng $1.0$). 
 
 Giả sử sau khi tính toán Softmax, ta thu được ma trận trọng số chú ý:
+
 $$\text{Attention Weights} = \begin{bmatrix} 0.35 & 0.42 & 0.23 \\\\ 0.30 & 0.25 & 0.45 \\\\ 0.37 & 0.45 & 0.18 \end{bmatrix}$$
 
 #### Bước 4: Nhân ma trận trọng số với ma trận giá trị $V$ để thu được vector ngữ cảnh (Context Vector)
+
 $$\text{Context} = \text{Attention Weights} \times V = \begin{bmatrix} 0.35 & 0.42 & 0.23 \\\\ 0.30 & 0.25 & 0.45 \\\\ 0.37 & 0.45 & 0.18 \end{bmatrix} \times \begin{bmatrix} v_{11} & v_{12} & v_{13} & v_{14} \\\\ v_{21} & v_{22} & v_{23} & v_{24} \\\\ v_{31} & v_{32} & v_{33} & v_{34} \end{bmatrix} = \begin{bmatrix} 0.35\vec{v}_1 + 0.42\vec{v}_2 + 0.23\vec{v}_3 \\\\ 0.30\vec{v}_1 + 0.25\vec{v}_2 + 0.45\vec{v}_3 \\\\ 0.37\vec{v}_1 + 0.45\vec{v}_2 + 0.18\vec{v}_3 \end{bmatrix}$$
 
 **Ý nghĩa:** Vector mới của từ `"chúng ta"` bây giờ là **trung bình có trọng số** của nội dung (Value) của cả 3 từ, trong đó thông tin từ `"yêu"` chiếm 42% (quan trọng nhất). Đây chính là cách mô hình "pha trộn" ngữ cảnh vào vector từ.
@@ -631,6 +666,7 @@ Ma trận trọng số $W$ (kích thước $3 \times 4$, mô hình tự học):
 $$W = \begin{bmatrix} 0.5 & 0.2 & -0.1 & 0.3 \\\\ -0.3 & 0.7 & 0.4 & 0.1 \\\\ 0.1 & -0.5 & 0.6 & 0.8 \end{bmatrix}$$
 
 Vector bias $b$ (kích thước $3$):
+
 $$b = [0.1, -0.2, 0.3]$$
 
 **Tính toán $y = x \cdot W^T + b$:**
@@ -689,7 +725,9 @@ Logits / Xác suất [18000 chiều]: [0.01, 0.002, 0.0001, ..., 0.15, ..., 0.00
 
 ### 6.1. Kiến trúc mạng Position-Wise Feed-Forward (FFN)
 Mạng Feed-Forward (FFN) được áp dụng đồng nhất cho mỗi vị trí của chuỗi đầu ra sau bước Self-Attention. Nó bao gồm hai phép biến đổi tuyến tính với một hàm kích hoạt phi tuyến ở giữa:
+
 $$\text{FFN}(x) = \max(0, x W_1 + b_1) W_2 + b_2$$
+
 Trong đó, phương trình trên sử dụng hàm kích hoạt ReLU.
 
 ### 6.2. Tại sao lại dùng ReLU cho FFN mà không phải hàm kích hoạt khác?
@@ -884,6 +922,7 @@ Ta chuẩn hóa vector $x$ về trung bình bằng $0$ và phương sai bằng $
 Cả hai kiến trúc đều sử dụng đúng 3 thành phần giống nhau: **LayerNorm**, **SubLayer** (Attention hoặc FFN), và **Residual Connection**. Điểm khác biệt **duy nhất** là **vị trí đặt LayerNorm**:
 
 #### Post-LN (Bài báo gốc 2017)
+
 $$\text{output} = \text{LayerNorm}(x + \text{SubLayer}(x))$$
 
 LayerNorm nằm **sau** phép cộng Residual:
@@ -895,6 +934,7 @@ x ──→ SubLayer(x) ──→ (+) ──→ LayerNorm ──→ output
 ```
 
 #### Pre-LN (Dự án của chúng ta, GPT, LLaMA)
+
 $$\text{output} = x + \text{SubLayer}(\text{LayerNorm}(x))$$
 
 LayerNorm nằm **trước** khi vào SubLayer:
@@ -1420,23 +1460,32 @@ Trong quá trình huấn luyện và đánh giá mô hình, chúng ta sử dụn
 
 1.  **Cross-Entropy Loss (Hàm mất mát phân loại chéo):**
     Được tính toán trên từng token đầu ra bằng cách so sánh phân phối xác xuất dự báo của mô hình với phân phối thực tế (dạng one-hot vector). Công thức Cross-Entropy cho một batch:
+
 $$\mathcal{L} = -\frac{1}{N} \sum_{n=1}^{N} \sum_{v=1}^{V} y_{n, v} \log(\hat{y}_{n, v})$$
+
     Trong đó $N$ là tổng số tokens trong batch (loại trừ các token đệm `<pad>`), $V$ là kích thước từ vựng đích, $y$ là phân phối thực tế và $\hat{y}$ là xác suất softmax do mô hình dự đoán. Hàm loss càng nhỏ chứng tỏ phân phối xác suất dự đoán của mô hình càng tiệm cận phân phối từ vựng thực tế.
 
 2.  **Perplexity (PPL - Độ bối rối):**
     Perplexity đo lường mức độ bất ngờ của mô hình khi dự đoán từ tiếp theo. Về mặt toán học, PPL là hàm mũ tự nhiên của Cross-Entropy Loss:
+
 $$\text{PPL} = e^{\mathcal{L}}$$
+
     *Ý nghĩa:* Giá trị PPL biểu thị số lượng từ mà mô hình "bị phân vân" tại mỗi bước dự đoán. Ví dụ, nếu $\text{PPL} = 10$, mô hình đang phân vân chọn lựa giữa 10 từ có độ khả thi ngang nhau. PPL giảm nhanh chứng tỏ mô hình thu hẹp dần vùng nghi ngờ và dự đoán từ tiếp theo tự tin hơn.
 
 3.  **BLEU Score (Bilingual Evaluation Understudy):**
     Là độ đo tiêu chuẩn để đánh giá chất lượng dịch máy bằng cách so sánh số lượng các cụm từ chung ($n$-gram) giữa bản dịch dự đoán ($C$) và các bản dịch tham chiếu của con người ($S$):
+
 $$\text{BLEU} = \text{BP} \cdot \exp\left(\sum_{n=1}^{N} w_n \ln p_n\right)$$
+
     Trong đó:
     *   $p_n$ là độ chính xác kích thước cụm từ $n$-gram ($n=1..4$).
     *   $w_n$ là trọng số cho mỗi $n$-gram (thường chọn $1/4$).
     *   $\text{BP}$ (Brevity Penalty) là hệ số phạt câu dịch quá ngắn để tránh mô hình gian lận bằng cách chỉ dịch vài từ đúng:
+
 $$\text{BP} = 1 \quad \text{if } c > r$$
+
 $$\text{BP} = e^{1 - r/c} \quad \text{if } c \leq r$$
+
         (với $c$ là độ dài bản dịch dự đoán, $r$ là độ dài bản dịch tham chiếu).
 
 ---
