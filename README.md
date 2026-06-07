@@ -109,7 +109,7 @@ Mô hình của chúng ta được thiết kế ở dạng **Mini-Transformer** 
 
 *   **Khởi tạo trọng số (Weight Initialization):**
     *   **Mô hình của chúng ta:** Khởi tạo các trọng số của lớp tuyến tính theo phân phối chuẩn với độ lệch chuẩn là $0.02$, và chia độ lệch chuẩn theo độ sâu cho các lớp chiếu kết nối tắt (như lớp chiếu đầu ra $W_o$ của Attention và lớp tuyến tính thứ hai $w_2$ của Feed-Forward):
-$$\sigma = \frac{0.02}{\sqrt{2 \times \text{num\_layers}}}$$
+$$\sigma = \frac{0.02}{\sqrt{2 \times \text{num\\_layers}}}$$
 *   **Bài báo gốc:** Khởi tạo các tham số theo phân phối chuẩn hoặc Xavier cơ bản mà không có hệ số giảm theo độ sâu $\sqrt{2N}$ (đây là kỹ thuật thường thấy trong GPT-2 để khắc phục sự tích tụ phương sai ở các khối Pre-LN).
 
 ---
@@ -204,7 +204,7 @@ Sau khi tính toán xong vector $PE_{(pos)}$ (ví dụ kích thước $1 \times 
 
 $$x_{input\_to\_encoder} = x_{word} \times \sqrt{d_{model}} + PE_{(pos)}$$
 
-*(Lưu ý: Nhân tỷ lệ $\sqrt{d_{model}} = \sqrt{256} = 16$ vào Word Embedding trước khi cộng để giữ cho thông tin vị trí không lấn át thông tin ngữ nghĩa của từ).*
+**Lưu ý:** Nhân tỷ lệ $\sqrt{d_{model}} = \sqrt{256} = 16$ vào Word Embedding trước khi cộng để giữ cho thông tin vị trí không lấn át thông tin ngữ nghĩa của từ.
 
 #### Sơ đồ Luồng cộng mã hóa vị trí (Positional Encoding Flow):
 ![Sơ đồ luồng cộng Positional Encoding](pe_flow.png)
@@ -405,15 +405,15 @@ $$\text{similarity}(\vec{a}, \vec{b}) = \vec{a} \cdot \vec{b} = a_1 b_1 + a_2 b_
 
 Giả sử ta có câu gồm 3 từ, mỗi từ được biểu diễn bằng vector $d_k = 4$ chiều:
 
-$$Q = \begin{bmatrix} q_1 \\ q_2 \\ q_3 \end{bmatrix} = \begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 1 & 0 & 1 \\ 1 & 1 & 0 & 0 \end{bmatrix} \quad \text{(kích thước } 3 \times 4\text{)}$$
+$$Q = \begin{bmatrix} q_1 \\\\ q_2 \\\\ q_3 \end{bmatrix} = \begin{bmatrix} 1 & 0 & 1 & 0 \\\\ 0 & 1 & 0 & 1 \\\\ 1 & 1 & 0 & 0 \end{bmatrix} \quad \text{(kích thước } 3 \times 4\text{)}$$
 
-$$K = \begin{bmatrix} k_1 \\ k_2 \\ k_3 \end{bmatrix} = \begin{bmatrix} 1 & 1 & 0 & 0 \\ 0 & 0 & 1 & 1 \\ 1 & 0 & 0 & 1 \end{bmatrix} \quad \text{(kích thước } 3 \times 4\text{)}$$
+$$K = \begin{bmatrix} k_1 \\\\ k_2 \\\\ k_3 \end{bmatrix} = \begin{bmatrix} 1 & 1 & 0 & 0 \\\\ 0 & 0 & 1 & 1 \\\\ 1 & 0 & 0 & 1 \end{bmatrix} \quad \text{(kích thước } 3 \times 4\text{)}$$
 
 Nếu ta nhân trực tiếp $Q \times K$ (kích thước $3 \times 4$ nhân $3 \times 4$) → **Không thể nhân được!** Vì số cột của $Q$ ($4$) khác số hàng của $K$ ($3$).
 
 Khi chuyển vị $K$:
 
-$$K^T = \begin{bmatrix} 1 & 0 & 1 \\ 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 1 & 1 \end{bmatrix} \quad \text{(kích thước } 4 \times 3\text{)}$$
+$$K^T = \begin{bmatrix} 1 & 0 & 1 \\\\ 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 1 & 1 \end{bmatrix} \quad \text{(kích thước } 4 \times 3\text{)}$$
 
 Lúc này $Q \times K^T$ có kích thước $(3 \times 4) \times (4 \times 3) = 3 \times 3$ → **Hoàn hảo!** Ma trận kết quả $3 \times 3$ chính là ma trận điểm tương đồng giữa **mọi cặp từ** trong câu:
 
@@ -423,30 +423,30 @@ Lúc này $Q \times K^T$ có kích thước $(3 \times 4) \times (4 \times 3) = 
 
 Giả sử ta đã tính toán được ma trận $Q$, $K$, và $V$ (kích thước $3 \times 4$):
 
-$$Q = \begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 1 & 0 & 1 \\ 1 & 1 & 0 & 0 \end{bmatrix} \quad \text{(kích thước } 3 \times 4\text{)}$$
+$$Q = \begin{bmatrix} 1 & 0 & 1 & 0 \\\\ 0 & 1 & 0 & 1 \\\\ 1 & 1 & 0 & 0 \end{bmatrix} \quad \text{(kích thước } 3 \times 4\text{)}$$
 
-$$K = \begin{bmatrix} 1 & 1 & 0 & 0 \\ 0 & 0 & 1 & 1 \\ 1 & 0 & 0 & 1 \end{bmatrix} \quad \text{(kích thước } 3 \times 4\text{)}$$
+$$K = \begin{bmatrix} 1 & 1 & 0 & 0 \\\\ 0 & 0 & 1 & 1 \\\\ 1 & 0 & 0 & 1 \end{bmatrix} \quad \text{(kích thước } 3 \times 4\text{)}$$
 
-$$V = \begin{bmatrix} v_{11} & v_{12} & v_{13} & v_{14} \\ v_{21} & v_{22} & v_{23} & v_{24} \\ v_{31} & v_{32} & v_{33} & v_{34} \end{bmatrix} \quad \text{(kích thước } 3 \times 4\text{)}$$
+$$V = \begin{bmatrix} v_{11} & v_{12} & v_{13} & v_{14} \\\\ v_{21} & v_{22} & v_{23} & v_{24} \\\\ v_{31} & v_{32} & v_{33} & v_{34} \end{bmatrix} \quad \text{(kích thước } 3 \times 4\text{)}$$
 
 #### Bước 1: Tính tích vô hướng $Q \times K^T$
 Chuyển vị ma trận $K$ thành $K^T$ có kích thước $4 \times 3$:
-$$K^T = \begin{bmatrix} 1 & 0 & 1 \\ 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 1 & 1 \end{bmatrix} \quad \text{(kích thước } 4 \times 3\text{)}$$
+$$K^T = \begin{bmatrix} 1 & 0 & 1 \\\\ 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 1 & 1 \end{bmatrix} \quad \text{(kích thước } 4 \times 3\text{)}$$
 
 Thực hiện phép nhân ma trận $Q \times K^T$:
-$$\text{Scores} = Q \times K^T = \begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 1 & 0 & 1 \\ 1 & 1 & 0 & 0 \end{bmatrix} \times \begin{bmatrix} 1 & 0 & 1 \\ 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 1 & 1 \end{bmatrix} = \begin{bmatrix} 1 & 1 & 1 \\ 1 & 1 & 1 \\ 2 & 0 & 1 \end{bmatrix}$$
+$$\text{Scores} = Q \times K^T = \begin{bmatrix} 1 & 0 & 1 & 0 \\\\ 0 & 1 & 0 & 1 \\\\ 1 & 1 & 0 & 0 \end{bmatrix} \times \begin{bmatrix} 1 & 0 & 1 \\\\ 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 1 & 1 \end{bmatrix} = \begin{bmatrix} 1 & 1 & 1 \\\\ 1 & 1 & 1 \\\\ 2 & 0 & 1 \end{bmatrix}$$
 
 #### Bước 2: Chia cho $\sqrt{d_k}$ (với $d_k = 4 \Rightarrow \sqrt{d_k} = 2$)
-$$\frac{\text{Scores}}{2} = \frac{1}{2} \times \begin{bmatrix} 1 & 1 & 1 \\ 1 & 1 & 1 \\ 2 & 0 & 1 \end{bmatrix} = \begin{bmatrix} 0.5 & 0.5 & 0.5 \\ 0.5 & 0.5 & 0.5 \\ 1.0 & 0.0 & 0.5 \end{bmatrix}$$
+$$\frac{\text{Scores}}{2} = \frac{1}{2} \times \begin{bmatrix} 1 & 1 & 1 \\\\ 1 & 1 & 1 \\\\ 2 & 0 & 1 \end{bmatrix} = \begin{bmatrix} 0.5 & 0.5 & 0.5 \\\\ 0.5 & 0.5 & 0.5 \\\\ 1.0 & 0.0 & 0.5 \end{bmatrix}$$
 
 #### Bước 3: Áp dụng hàm Softmax để tính trọng số Attention (Attention Weights)
 Hàm Softmax được áp dụng theo từng hàng của ma trận điểm số để tạo ra phân phối xác suất (tổng mỗi hàng bằng $1.0$). 
 
 Giả sử sau khi tính toán Softmax, ta thu được ma trận trọng số chú ý:
-$$\text{Attention Weights} = \begin{bmatrix} 0.35 & 0.42 & 0.23 \\ 0.30 & 0.25 & 0.45 \\ 0.37 & 0.45 & 0.18 \end{bmatrix}$$
+$$\text{Attention Weights} = \begin{bmatrix} 0.35 & 0.42 & 0.23 \\\\ 0.30 & 0.25 & 0.45 \\\\ 0.37 & 0.45 & 0.18 \end{bmatrix}$$
 
 #### Bước 4: Nhân ma trận trọng số với ma trận giá trị $V$ để thu được vector ngữ cảnh (Context Vector)
-$$\text{Context} = \text{Attention Weights} \times V = \begin{bmatrix} 0.35 & 0.42 & 0.23 \\ 0.30 & 0.25 & 0.45 \\ 0.37 & 0.45 & 0.18 \end{bmatrix} \times \begin{bmatrix} v_{11} & v_{12} & v_{13} & v_{14} \\ v_{21} & v_{22} & v_{23} & v_{24} \\ v_{31} & v_{32} & v_{33} & v_{34} \end{bmatrix} = \begin{bmatrix} 0.35\vec{v}_1 + 0.42\vec{v}_2 + 0.23\vec{v}_3 \\ 0.30\vec{v}_1 + 0.25\vec{v}_2 + 0.45\vec{v}_3 \\ 0.37\vec{v}_1 + 0.45\vec{v}_2 + 0.18\vec{v}_3 \end{bmatrix}$$
+$$\text{Context} = \text{Attention Weights} \times V = \begin{bmatrix} 0.35 & 0.42 & 0.23 \\\\ 0.30 & 0.25 & 0.45 \\\\ 0.37 & 0.45 & 0.18 \end{bmatrix} \times \begin{bmatrix} v_{11} & v_{12} & v_{13} & v_{14} \\\\ v_{21} & v_{22} & v_{23} & v_{24} \\\\ v_{31} & v_{32} & v_{33} & v_{34} \end{bmatrix} = \begin{bmatrix} 0.35\vec{v}_1 + 0.42\vec{v}_2 + 0.23\vec{v}_3 \\\\ 0.30\vec{v}_1 + 0.25\vec{v}_2 + 0.45\vec{v}_3 \\\\ 0.37\vec{v}_1 + 0.45\vec{v}_2 + 0.18\vec{v}_3 \end{bmatrix}$$
 
 **Ý nghĩa:** Vector mới của từ `"chúng ta"` bây giờ là **trung bình có trọng số** của nội dung (Value) của cả 3 từ, trong đó thông tin từ `"yêu"` chiếm 42% (quan trọng nhất). Đây chính là cách mô hình "pha trộn" ngữ cảnh vào vector từ.
 
@@ -672,7 +672,7 @@ $$x = [2, 1, 3, 0]$$
 
 Ma trận trọng số $W$ (kích thước $3 \times 4$, mô hình tự học):
 
-$$W = \begin{bmatrix} 0.5 & 0.2 & -0.1 & 0.3 \\ -0.3 & 0.7 & 0.4 & 0.1 \\ 0.1 & -0.5 & 0.6 & 0.8 \end{bmatrix}$$
+$$W = \begin{bmatrix} 0.5 & 0.2 & -0.1 & 0.3 \\\\ -0.3 & 0.7 & 0.4 & 0.1 \\\\ 0.1 & -0.5 & 0.6 & 0.8 \end{bmatrix}$$
 
 Vector bias $b$ (kích thước $3$):
 $$b = [0.1, -0.2, 0.3]$$
